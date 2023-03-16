@@ -9,6 +9,7 @@
 	} from '$lib/scripts/TrajectoryTypes';
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
+	import { degreesToRadians } from '$lib/scripts/math';
 
 	let pathTables = initialPathTables;
 
@@ -39,7 +40,7 @@
 									y: waypoint.y
 								},
 								rotation: {
-									radians: waypoint.th
+									radians: degreesToRadians(waypoint.th)
 								}
 							} as Pose;
 						}),

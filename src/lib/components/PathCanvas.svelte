@@ -1,6 +1,6 @@
 <script lang="ts">
 	import fieldImg from '$lib/assets/field-image.png';
-	import { degreesToRadians } from '$lib/scripts/math';
+	import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
 	import type { SwerveTrajectoryWaypoint, TrajectoryResponse } from '$lib/scripts/TrajectoryTypes';
 	import { onMount, afterUpdate } from 'svelte';
 
@@ -18,6 +18,7 @@
 	const canvasHeight = 643;
 	const robotSideLengthPx = robotSideLengthMeters * (canvasWidth / fieldLengthMeters);
 	const halfRobotSideLengthPx = robotSideLengthPx / 2;
+	const coreRadius = 10;
 
 	// state variables
 	export let waypoints: SwerveTrajectoryWaypoint[];
@@ -40,6 +41,8 @@
 		const bounds = [];
 		for (const waypoint of waypoints) {
 			const pxFieldCoords = fieldToCanvas(waypoint.x, waypoint.y); // should be center?
+			const psiRads = degreesToRadians(-waypoint.psi);
+			const thRads = degreesToRadians(-waypoint.th);
 			bounds.push({
 				translationBox: {
 					topLeft: {
@@ -51,13 +54,19 @@
 						y: pxFieldCoords.y + halfRobotSideLengthPx
 					}
 				},
-				rotationBox: {
-					topLeft: { x: 0, y: 0 },
-					bottomRight: { x: 0, y: 0 }
+				rotationCircle: {
+					center: {
+						x: pxFieldCoords.x + (halfRobotSideLengthPx + coreRadius) * Math.cos(psiRads),
+						y: pxFieldCoords.y + (halfRobotSideLengthPx + coreRadius) * Math.sin(psiRads)
+					},
+					radius: coreRadius
 				},
-				headingBox: {
-					topLeft: { x: 0, y: 0 },
-					bottomRight: { x: 0, y: 0 }
+				headingCircle: {
+					center: {
+						x: pxFieldCoords.x + (halfRobotSideLengthPx - coreRadius) * Math.cos(thRads),
+						y: pxFieldCoords.y + (halfRobotSideLengthPx - coreRadius) * Math.sin(thRads)
+					},
+					radius: coreRadius
 				}
 			});
 		}
@@ -95,16 +104,16 @@
 		ctx.moveTo(0, 0);
 		ctx.lineTo(halfRobotSideLengthPx, 0);
 		ctx.moveTo(halfRobotSideLengthPx, 0);
-		ctx.lineTo(halfRobotSideLengthPx - 10, 10);
+		ctx.lineTo(halfRobotSideLengthPx - coreRadius, coreRadius);
 		ctx.moveTo(halfRobotSideLengthPx, 0);
-		ctx.lineTo(halfRobotSideLengthPx - 10, -10);
+		ctx.lineTo(halfRobotSideLengthPx - coreRadius, -coreRadius);
 
 		ctx.rotate(-thetaRads);
 		ctx.translate(-xPx, -yPx);
 	}
 
 	function drawRobot(xPx: number, yPx: number, psiRads: number) {
-		const cornerRadius = 10;
+		const cornerRadius = coreRadius;
 		ctx.translate(xPx, yPx);
 		ctx.rotate(psiRads);
 
@@ -112,29 +121,29 @@
 		ctx.arc(
 			halfRobotSideLengthPx - cornerRadius,
 			-halfRobotSideLengthPx + cornerRadius,
-			10,
+			cornerRadius,
 			-Math.PI / 2,
 			-Math.PI / 6
 		);
-		ctx.arc(halfRobotSideLengthPx + cornerRadius, 0, 10, -Math.PI / 6, Math.PI / 6);
+		ctx.arc(halfRobotSideLengthPx + cornerRadius, 0, cornerRadius, -Math.PI / 6, Math.PI / 6);
 		ctx.arc(
 			halfRobotSideLengthPx - cornerRadius,
 			halfRobotSideLengthPx - cornerRadius,
-			10,
+			cornerRadius,
 			Math.PI / 6,
 			Math.PI / 2
 		);
 		ctx.arc(
 			-halfRobotSideLengthPx + cornerRadius,
 			halfRobotSideLengthPx - cornerRadius,
-			10,
+			cornerRadius,
 			Math.PI / 2,
 			Math.PI
 		);
 		ctx.arc(
 			-halfRobotSideLengthPx + cornerRadius,
 			-halfRobotSideLengthPx + cornerRadius,
-			10,
+			cornerRadius,
 			Math.PI,
 			-Math.PI / 2
 		);
@@ -168,7 +177,7 @@
 			ctx.strokeStyle = '#f97316';
 			const pxFieldCoords = waypoints.map((waypoint) => fieldToCanvas(waypoint.x, waypoint.y));
 			waypoints.forEach((waypoint, idx) => {
-				drawRobot(pxFieldCoords[idx].x, pxFieldCoords[idx].y, degreesToRadians(waypoint.psi));
+				drawRobot(pxFieldCoords[idx].x, pxFieldCoords[idx].y, degreesToRadians(-waypoint.psi));
 			});
 
 			// update preview
@@ -176,7 +185,7 @@
 				// assuming targetValue is valid
 				switch (transformMode) {
 					case TransformMode.Translate:
-						const psiRads = degreesToRadians(waypoints[waypointToTransformIndex].psi);
+						const psiRads = degreesToRadians(-waypoints[waypointToTransformIndex].psi);
 						drawRobot(previewTarget[0], previewTarget[1], psiRads);
 						break;
 					case TransformMode.Rotate:
@@ -196,8 +205,15 @@
 			ctx.strokeStyle = '#38bdf8';
 			ctx.lineWidth = 3;
 			ctx.lineCap = 'round';
+			if (waypointToTransformIndex !== -1 && transformMode === TransformMode.RotateHeading) {
+				const pxFieldCoords = fieldToCanvas(
+					waypoints[waypointToTransformIndex].x,
+					waypoints[waypointToTransformIndex].y
+				);
+				drawArrow(pxFieldCoords.x, pxFieldCoords.y, previewTarget[0]);
+			}
 			waypoints.forEach((waypoint, idx) => {
-				drawArrow(pxFieldCoords[idx].x, pxFieldCoords[idx].y, degreesToRadians(waypoint.th));
+				drawArrow(pxFieldCoords[idx].x, pxFieldCoords[idx].y, degreesToRadians(-waypoint.th));
 			});
 			ctx.stroke();
 		} else {
@@ -217,6 +233,29 @@
 			for (let i = 0; i < waypointBoundBoxes.length; i++) {
 				const bounds = waypointBoundBoxes[i];
 				if (
+					// in rotation circle
+					Math.sqrt(
+						Math.pow(canvasX - bounds.rotationCircle.center.x, 2) +
+							Math.pow(canvasY - bounds.rotationCircle.center.y, 2)
+					) <= bounds.rotationCircle.radius
+				) {
+					console.log(`Rotate Waypoint ${i}`);
+					targetWaypointIndex = i;
+					transformMode = TransformMode.Rotate;
+					break;
+				} else if (
+					// in heading circle
+					Math.sqrt(
+						Math.pow(canvasX - bounds.headingCircle.center.x, 2) +
+							Math.pow(canvasY - bounds.headingCircle.center.y, 2)
+					) <= bounds.headingCircle.radius
+				) {
+					console.log(`Rotate Waypoint Heading ${i}`);
+					targetWaypointIndex = i;
+					transformMode = TransformMode.RotateHeading;
+					break;
+				} else if (
+					// in translation box
 					canvasX >= bounds.translationBox.topLeft.x &&
 					canvasX <= bounds.translationBox.bottomRight.x &&
 					canvasY >= bounds.translationBox.topLeft.y &&
@@ -225,16 +264,6 @@
 					console.log(`Translate Waypoint ${i}`);
 					targetWaypointIndex = i;
 					transformMode = TransformMode.Translate;
-					break;
-				} else if (
-					canvasX >= bounds.rotationBox.topLeft.x &&
-					canvasX <= bounds.rotationBox.bottomRight.x &&
-					canvasY >= bounds.rotationBox.topLeft.y &&
-					canvasY <= bounds.rotationBox.bottomRight.y
-				) {
-					console.log(`Rotate Waypoint ${i}`);
-					targetWaypointIndex = i;
-					transformMode = TransformMode.Rotate;
 					break;
 				}
 			}
@@ -252,18 +281,17 @@
 					targetValue = canvasCoords;
 					break;
 				case TransformMode.Rotate:
+				case TransformMode.RotateHeading:
 					const [canvasX, canvasY] = canvasCoords;
 					const { x, y } = fieldToCanvas(waypoint.x, waypoint.y);
 					targetValue = [Math.atan2(canvasY - y, canvasX - x)];
-					break;
-				case TransformMode.RotateHeading:
 					break;
 			}
 		});
 
 		canvas.addEventListener('mouseup', (ev: MouseEvent) => {
 			console.log('mouseup');
-			if (waypointToTransformIndex === -1) return;
+			if (waypointToTransformIndex === -1 || !targetValue) return;
 			switch (transformMode) {
 				case TransformMode.Translate:
 					const newWaypointCoords = canvasToField(targetValue[0], targetValue[1]);
@@ -274,9 +302,18 @@
 					waypoints[waypointToTransformIndex].y = newWaypointCoords.y;
 					break;
 				case TransformMode.Rotate:
-					waypoints[waypointToTransformIndex].psi = targetValue[0];
+					const newWaypointPsi = -radiansToDegrees(targetValue[0]);
+					console.log(
+						`waypoint ${waypointToTransformIndex} ψ: ${waypoints[waypointToTransformIndex].psi} -> ${newWaypointPsi}`
+					);
+					waypoints[waypointToTransformIndex].psi = newWaypointPsi;
 					break;
 				case TransformMode.RotateHeading:
+					const newWaypointTh = -radiansToDegrees(targetValue[0]);
+					console.log(
+						`waypoint ${waypointToTransformIndex} θ: ${waypoints[waypointToTransformIndex].th} -> ${newWaypointTh}`
+					);
+					waypoints[waypointToTransformIndex].th = newWaypointTh;
 					break;
 			}
 			waypointToTransformIndex = -1;
