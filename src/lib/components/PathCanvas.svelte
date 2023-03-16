@@ -180,6 +180,9 @@
 				drawRobot(pxFieldCoords[idx].x, pxFieldCoords[idx].y, degreesToRadians(-waypoint.psi));
 			});
 
+			ctx.fillStyle = 'rgba(249, 115, 22, 0.25)';
+			ctx.fill();
+
 			// update preview
 			if (waypointToTransformIndex !== -1) {
 				// assuming targetValue is valid
