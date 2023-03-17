@@ -213,12 +213,13 @@
 				{/each}
 			</div>
 			<button
+				class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
 				on:click={() => {
 					modalCode = pathToString(pathTables[selectedPath].waypoints);
 					modalOpen = true;
 				}}>Export Selected Path</button
 			>
-			<button>Export All Paths</button>
+			<button class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4">Export All Paths</button>
 		</form>
 	</div>
 
