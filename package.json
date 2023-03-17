@@ -37,6 +37,7 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"paper": "^0.12.17"
+		"paper": "^0.12.17",
+		"svelte-fa": "^3.0.3"
 	}
 }

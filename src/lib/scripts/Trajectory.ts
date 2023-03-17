@@ -1,3 +1,5 @@
+import { degreesToRadians } from '$lib/scripts/math';
+
 interface Pose {
     translation: {
         x: number;
@@ -143,4 +145,60 @@ const initialTrajectoryConfig = {
         reversed: false
 }
 
-export {initialPathTables, initialTrajectoryConfig, type TrajectoryState, type TrajectoryRequest, type TrajectoryResponse, type Pose, type SwerveTrajectoryWaypoint}
+async function getPath(
+    waypoints: SwerveTrajectoryWaypoint[],
+    startVelocity: number,
+    endVelocity: number,
+    maxVelocity: number,
+    maxAcceleration: number,
+    reversed: boolean
+): Promise<TrajectoryResponse | null> {
+    try {
+        const response = await fetch(
+            'https://trajectoryapi.fly.dev/api/trajectory/trajectoryfrompoints',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                body: JSON.stringify({
+                    poses: waypoints.map((waypoint) => {
+                        return {
+                            translation: {
+                                x: waypoint.x,
+                                y: waypoint.y
+                            },
+                            rotation: {
+                                radians: degreesToRadians(waypoint.th)
+                            }
+                        } as Pose;
+                    }),
+                    config: {
+                        startVelocity,
+                        endVelocity,
+                        maxVelocity,
+                        maxAcceleration,
+                        reversed
+                    }
+                } as TrajectoryRequest)
+            }
+        );
+        const data = await response.json();
+        console.log('got data');
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        return null;
+    }
+}
+
+function pathToString(points: SwerveTrajectoryWaypoint[]) {
+    let output = 'new SwerveTrajectoryWaypoint[] {'
+    for(const point of points) {
+        output += `\n\tnew SwerveTrajectoryWaypoint(\n\t\tnew Translation2d(${point.x}, ${point.y}),\n\t\tRotation2d.fromDegrees(${point.psi}),\n\t\tRotation2d.fromDegrees(${point.th})),`
+    }
+    return output.slice(0,-1) + "\n};"
+}
+
+export {getPath, pathToString, initialPathTables, initialTrajectoryConfig, type TrajectoryState, type TrajectoryRequest, type TrajectoryResponse, type Pose, type SwerveTrajectoryWaypoint}

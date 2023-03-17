@@ -1,7 +1,7 @@
 <script lang="ts">
 	import fieldImg from '$lib/assets/field-image.png';
 	import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
-	import type { SwerveTrajectoryWaypoint, TrajectoryResponse } from '$lib/scripts/TrajectoryTypes';
+	import type { SwerveTrajectoryWaypoint, TrajectoryResponse } from '$lib/scripts/Trajectory';
 	import { onMount, afterUpdate } from 'svelte';
 
 	enum TransformMode {

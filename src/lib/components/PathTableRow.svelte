@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { SwerveTrajectoryWaypoint } from '$lib/scripts/TrajectoryTypes';
+	import type { SwerveTrajectoryWaypoint } from '$lib/scripts/Trajectory';
 
 	export let row: SwerveTrajectoryWaypoint;
 	export let onClickRemoveRow: () => void;

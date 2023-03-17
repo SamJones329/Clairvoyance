@@ -1,67 +1,21 @@
 <script lang="ts">
+	import x from '$lib/assets/x.svg';
 	import PathTableRow from '$lib/components/PathTableRow.svelte';
-	import { initialPathTables, initialTrajectoryConfig } from '$lib/scripts/TrajectoryTypes';
-	import type {
-		Pose,
-		TrajectoryRequest,
-		TrajectoryResponse,
-		SwerveTrajectoryWaypoint
-	} from '$lib/scripts/TrajectoryTypes';
+	import {
+		getPath,
+		initialPathTables,
+		initialTrajectoryConfig,
+		pathToString
+	} from '$lib/scripts/Trajectory';
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
-	import { degreesToRadians } from '$lib/scripts/math';
 
 	let pathTables = initialPathTables;
 
 	let selectedPath = 0;
 
-	async function getPath(
-		waypoints: SwerveTrajectoryWaypoint[],
-		startVelocity: number,
-		endVelocity: number,
-		maxVelocity: number,
-		maxAcceleration: number,
-		reversed: boolean
-	): Promise<TrajectoryResponse | null> {
-		try {
-			const response = await fetch(
-				'https://trajectoryapi.fly.dev/api/trajectory/trajectoryfrompoints',
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						'Access-Control-Allow-Origin': '*'
-					},
-					body: JSON.stringify({
-						poses: waypoints.map((waypoint) => {
-							return {
-								translation: {
-									x: waypoint.x,
-									y: waypoint.y
-								},
-								rotation: {
-									radians: degreesToRadians(waypoint.th)
-								}
-							} as Pose;
-						}),
-						config: {
-							startVelocity,
-							endVelocity,
-							maxVelocity,
-							maxAcceleration,
-							reversed
-						}
-					} as TrajectoryRequest)
-				}
-			);
-			const data = await response.json();
-			console.log('got data');
-			return data;
-		} catch (error) {
-			console.error('Error:', error);
-			return null;
-		}
-	}
+	let modalCode = '';
+	let modalOpen = false;
 
 	function updatePathTablesAfter(func: () => any, pathTableIndex: number) {
 		return async () => {
@@ -258,6 +212,13 @@
 					</table>
 				{/each}
 			</div>
+			<button
+				on:click={() => {
+					modalCode = pathToString(pathTables[selectedPath].waypoints);
+					modalOpen = true;
+				}}>Export Selected Path</button
+			>
+			<button>Export All Paths</button>
 		</form>
 	</div>
 
@@ -271,5 +232,24 @@
 			}}
 			triggerWaypointUpdate={updatePathTablesAfter(() => {}, selectedPath)}
 		/>
+	</div>
+</div>
+
+<div
+	class={'absolute top-0 left-0 w-screen h-screen bg-opacity-75 bg-black z-50 ' +
+		(modalOpen ? '' : 'hidden')}
+>
+	<div class="relative w-[50rem] h-[40rem] mx-auto mt-24 bg-violet-800 rounded-xl">
+		<div class="mx-auto max-w-max">
+			<h2 class="max-w-max pt-8 pb-4 text-white text-bold text-xl">Exported Path Code</h2>
+			<p
+				class="bg-white w-[46rem] h-[32rem] text-black custom-code-indent whitespace-pre-wrap rounded-lg p-8"
+			>
+				{modalCode}
+			</p>
+		</div>
+		<button class="w-4 h-4 absolute top-4 right-4" on:click={() => (modalOpen = false)}
+			><img src={x} alt="" srcset="" /></button
+		>
 	</div>
 </div>
