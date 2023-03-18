@@ -77,6 +77,20 @@
 	<div class="w-[20rem] bg-zinc-800 h-screen p-4">
 		<form action="" class="flex flex-col items-center">
 			<div class="flex items-center justify-end w-48 h-12">
+				<input
+					class="w-12 h-4 text-black"
+					type="text"
+					name="path-name"
+					id="path-name"
+					value={pathTables[selectedPath].title}
+					on:change={(ev) => {
+						pathTables[selectedPath].title = ev.currentTarget.value;
+						pathTables = pathTables;
+					}}
+				/>
+			</div>
+
+			<div class="flex items-center justify-end w-48 h-12">
 				<label class="text-right" for="reversed">Reversed</label>
 				<input
 					class="w-12 h-4 text-black"
@@ -214,12 +228,27 @@
 			</div>
 			<button
 				class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+				type="button"
 				on:click={() => {
-					modalCode = pathToString(pathTables[selectedPath].waypoints);
+					modalCode = pathToString(
+						pathTables[selectedPath].waypoints,
+						pathTables[selectedPath].title
+					);
 					modalOpen = true;
 				}}>Export Selected Path</button
 			>
-			<button class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4">Export All Paths</button>
+			<button
+				type="button"
+				class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+				on:click={() => {
+					let newModalCode = '';
+					for (const path of pathTables) {
+						newModalCode += pathToString(path.waypoints, path.title) + '\n';
+					}
+					modalCode = newModalCode;
+					modalOpen = true;
+				}}>Export All Paths</button
+			>
 		</form>
 	</div>
 
@@ -243,11 +272,13 @@
 	<div class="relative w-[50rem] h-[40rem] mx-auto mt-24 bg-violet-800 rounded-xl">
 		<div class="mx-auto max-w-max">
 			<h2 class="max-w-max pt-8 pb-4 text-white text-bold text-xl">Exported Path Code</h2>
-			<p
-				class="bg-white w-[46rem] h-[32rem] text-black custom-code-indent whitespace-pre-wrap rounded-lg p-8"
+			<div
+				class="bg-white w-[46rem] h-[32rem] text-black whitespace-pre-wrap rounded-lg px-8 py-4 overflow-scroll"
 			>
-				{modalCode}
-			</p>
+				<p>
+					{modalCode}
+				</p>
+			</div>
 		</div>
 		<button class="w-4 h-4 absolute top-4 right-4" on:click={() => (modalOpen = false)}
 			><img src={x} alt="" srcset="" /></button

@@ -47,10 +47,12 @@ interface TrajectoryResponse {
 }
 
 const initialPathTables: {
+    title: string,
     waypoints: SwerveTrajectoryWaypoint[];
     path: TrajectoryResponse | null;
 }[] = [
     {
+        title: "Default",
         waypoints: [
             {
                 x: 1,
@@ -68,6 +70,7 @@ const initialPathTables: {
         path: null
     },
     {
+        title: "Default",
         waypoints: [
             {
                 x: 1,
@@ -85,6 +88,7 @@ const initialPathTables: {
         path: null
     },
     {
+        title: "Default",
         waypoints: [
             {
                 x: 1,
@@ -102,6 +106,7 @@ const initialPathTables: {
         path: null
     },
     {
+        title: "Default",
         waypoints: [
             {
                 x: 1,
@@ -119,6 +124,7 @@ const initialPathTables: {
         path: null
     },
     {
+        title: "Default",
         waypoints: [
             {
                 x: 1,
@@ -193,8 +199,8 @@ async function getPath(
     }
 }
 
-function pathToString(points: SwerveTrajectoryWaypoint[]) {
-    let output = 'new SwerveTrajectoryWaypoint[] {'
+function pathToString(points: SwerveTrajectoryWaypoint[], name?: string) {
+    let output = (name ? `public static final ${name} = ` : '') + 'new SwerveTrajectoryWaypoint[] {'
     for(const point of points) {
         output += `\n\tnew SwerveTrajectoryWaypoint(\n\t\tnew Translation2d(${point.x}, ${point.y}),\n\t\tRotation2d.fromDegrees(${point.psi}),\n\t\tRotation2d.fromDegrees(${point.th})),`
     }

@@ -18,7 +18,3 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
-
-.custom-code-indent {
-  text-indent: -4em each-line;
-}
