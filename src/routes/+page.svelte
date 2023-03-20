@@ -76,11 +76,12 @@
 <div class="flex">
 	<div class="w-[20rem] bg-zinc-800 h-screen p-4">
 		<form action="" class="flex flex-col items-center">
-			<div class="flex items-center justify-end w-48 h-12">
+			<div class="flex items-center justify-end w-48 h-8">
 				<input
-					class="w-12 h-4 text-black"
+					class="w-full h-8 text-black bg-transparent text-white text-xl text-center focus:outline-none border-b-2 focus:rounded-lg focus:border-2 border-violet-300"
 					type="text"
 					name="path-name"
+					aria-label="path name"
 					id="path-name"
 					value={pathTables[selectedPath].title}
 					on:change={(ev) => {

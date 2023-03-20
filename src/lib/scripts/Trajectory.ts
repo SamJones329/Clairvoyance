@@ -1,4 +1,5 @@
 import { degreesToRadians } from '$lib/scripts/math';
+import { toCamelCase } from './text-manipulation';
 
 interface Pose {
     translation: {
@@ -200,7 +201,7 @@ async function getPath(
 }
 
 function pathToString(points: SwerveTrajectoryWaypoint[], name?: string) {
-    let output = (name ? `public static final ${name} = ` : '') + 'new SwerveTrajectoryWaypoint[] {'
+    let output = (name ? `public static final ${toCamelCase(name)} = ` : '') + 'new SwerveTrajectoryWaypoint[] {'
     for(const point of points) {
         output += `\n\tnew SwerveTrajectoryWaypoint(\n\t\tnew Translation2d(${point.x}, ${point.y}),\n\t\tRotation2d.fromDegrees(${point.psi}),\n\t\tRotation2d.fromDegrees(${point.th})),`
     }
