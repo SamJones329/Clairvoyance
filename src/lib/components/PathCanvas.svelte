@@ -11,8 +11,8 @@
 	}
 
 	// constants
-	const fieldLengthMeters = 16.4846;
-	const fieldWidthMeters = 8.1026;
+	const fieldLengthMeters = 16.54175;
+	const fieldWidthMeters = 8.0137;
 	const robotSideLengthMeters = 0.889;
 	const canvasWidth = 1323;
 	const canvasHeight = 643;
