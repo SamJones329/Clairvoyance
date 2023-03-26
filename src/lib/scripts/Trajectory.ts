@@ -227,7 +227,7 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
     if(!paths) return points
     for(const path of paths) {
         console.log(path)
-        const title = path.match(/(?<=\s*)\w+(?=\s*=)/g)?.[0] ?? "noTitleFound"
+        const title = path.match(/\s*\w+(?=\s*=)/g)?.[0].trim() ?? "noTitleFound"
         console.log(title)
         const ptMatches = path.matchAll(/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?:Rotation2d\.fromDegrees|new\s+Rotation2d)\s*\((?<orientataion>\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?:Rotation2d\.fromDegrees|new\s+Rotation2d)\s*\((?<heading>\d*\.\d+|\d+\.?)\s*\)\s*\))+/g)
         const waypoints: SwerveTrajectoryWaypoint[] = []
