@@ -6,8 +6,9 @@ declare global {
 		// interface Locals {}
 		// interface PageData {}
 		// interface Platform {}
-		
+		// eslint-disable-next-line no-unused-labels
 	}
+	interface Window {__TAURI_METADATA__: unknown};
 }
 
 export {};

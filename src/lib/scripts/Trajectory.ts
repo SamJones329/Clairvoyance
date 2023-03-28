@@ -148,13 +148,27 @@ const initialPathTables: TrajectoryContainer[] = [
 
 const initialTrajectoryConfig = {
     startVelocity: 0,
-        endVelocity: 0,
-        maxVelocity: 4.5,
-        maxAcceleration: 3.5,
-        reversed: false
+    endVelocity: 0,
+    maxVelocity: 4.5,
+    maxAcceleration: 3.5,
+    reversed: false
 }
 
-async function getPath(
+function waypointsToPoses(waypoints: SwerveTrajectoryWaypoint[]) {
+    return waypoints.map((waypoint) => {
+        return {
+            translation: {
+                x: waypoint.x,
+                y: waypoint.y
+            },
+            rotation: {
+                radians: degreesToRadians(waypoint.th)
+            }
+        } as Pose;
+    })
+}
+
+async function fetchPath(
     waypoints: SwerveTrajectoryWaypoint[],
     startVelocity: number,
     endVelocity: number,
@@ -172,17 +186,7 @@ async function getPath(
                     'Access-Control-Allow-Origin': '*'
                 },
                 body: JSON.stringify({
-                    poses: waypoints.map((waypoint) => {
-                        return {
-                            translation: {
-                                x: waypoint.x,
-                                y: waypoint.y
-                            },
-                            rotation: {
-                                radians: degreesToRadians(waypoint.th)
-                            }
-                        } as Pose;
-                    }),
+                    poses: waypointsToPoses(waypoints),
                     config: {
                         startVelocity,
                         endVelocity,
@@ -256,4 +260,4 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
     return points
 }
 
-export {getPath, pathToString, stringToPaths, initialPathTables, initialTrajectoryConfig, type TrajectoryState, type TrajectoryRequest, type TrajectoryResponse, type Pose, type SwerveTrajectoryWaypoint}
+export {waypointsToPoses, fetchPath, pathToString, stringToPaths, initialPathTables, initialTrajectoryConfig, type TrajectoryState, type TrajectoryRequest, type TrajectoryResponse, type Pose, type SwerveTrajectoryWaypoint}

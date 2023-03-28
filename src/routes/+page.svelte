@@ -1,18 +1,32 @@
 <script lang="ts">
+	import { invoke } from '@tauri-apps/api/tauri';
 	import Button from '$lib/components/Button.svelte';
 	import x from '$lib/assets/x.svg';
 	import PathTableRow from '$lib/components/PathTableRow.svelte';
 	import {
-		getPath,
+		fetchPath,
 		initialPathTables,
 		initialTrajectoryConfig,
 		pathToString,
-		stringToPaths
+		stringToPaths,
+		waypointsToPoses,
+		type SwerveTrajectoryWaypoint,
+		type TrajectoryResponse
 	} from '$lib/scripts/Trajectory';
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
 	import { copyText } from '$lib/scripts/copyToClipboard';
 
+	let getPath: (
+		waypoints: SwerveTrajectoryWaypoint[],
+		startVelocity: number,
+		endVelocity: number,
+		maxVelocity: number,
+		maxAcceleration: number,
+		reversed: boolean
+	) => Promise<TrajectoryResponse | null> = fetchPath;
+
+	let ON_TAURI = false;
 	let pathTables = initialPathTables;
 
 	let selectedPath = 0;
@@ -60,22 +74,72 @@
 		};
 	}
 
-	onMount(() => {
-		getPath(
+	onMount(async () => {
+		ON_TAURI =
+			(await invoke('test_for_tauri')
+				.then((val) => (typeof val === 'boolean' ? val : false))
+				.catch((err) => {
+					console.log(`Error getting tauri: ${err}`);
+					return false;
+				})) ?? false;
+		console.log(
+			ON_TAURI
+				? 'Was able to invoke tauri function, will use Rust trajectory generation'
+				: 'Was not able to invoke tauri function, will use TrajectoryAPI'
+		);
+		getPath = ON_TAURI
+			? (waypoints, startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed) => {
+					invoke('generate_trajectory_tauri', {
+						waypoints: waypointsToPoses(waypoints),
+						config: {
+							max_velocity: maxVelocity,
+							max_acceleration: maxAcceleration,
+							start_velocity: startVelocity,
+							end_velocity: endVelocity,
+							reversed
+						}
+					})
+						.then((val) => {
+							console.log(val);
+						})
+						.catch((err) => {
+							console.log(err);
+						});
+					return fetchPath(
+						waypoints,
+						startVelocity,
+						endVelocity,
+						maxVelocity,
+						maxAcceleration,
+						reversed
+					);
+			  }
+			: getPath;
+		const val = getPath(
 			pathTables[0].waypoints,
 			initialTrajectoryConfig.startVelocity,
 			initialTrajectoryConfig.endVelocity,
 			initialTrajectoryConfig.maxVelocity,
 			initialTrajectoryConfig.maxAcceleration,
 			initialTrajectoryConfig.reversed
-		).then((startPath) => {
-			console.log(startPath);
+		);
+		if (val instanceof Promise) {
+			val.then((startPath) => {
+				console.log(startPath);
+				pathTables.forEach((pathTable, idx) => {
+					console.log(`setting start path ${idx}`);
+					pathTable.path = startPath;
+				});
+				pathTables = pathTables;
+			});
+		} else {
+			console.log(val);
 			pathTables.forEach((pathTable, idx) => {
 				console.log(`setting start path ${idx}`);
-				pathTable.path = startPath;
+				pathTable.path = val;
 			});
 			pathTables = pathTables;
-		});
+		}
 	});
 </script>
 
