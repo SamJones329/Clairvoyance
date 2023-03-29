@@ -125,7 +125,7 @@ impl Sub for Rotation2d {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        todo!()
+        self.rotate_by(&-rhs)
     }
 }
 impl Neg for Rotation2d {
@@ -175,7 +175,7 @@ impl Pose2d {
 
         let cos_minus_one = transform.rotation().cos() - 1.;
 
-        let mut half_theta_by_tan_of_half_dtheta: f64;
+        let half_theta_by_tan_of_half_dtheta: f64;
         if cos_minus_one.abs() < 1E-9 {
             half_theta_by_tan_of_half_dtheta = 1.0 - 1.0 / 12.0 * dtheta * dtheta;
         } else {

@@ -39,7 +39,7 @@
 	let importResultOpen = false;
 	let importResults: string[] = [];
 
-	async function updatePath(pathTableIndex: number) {
+	function getTrajectoryConfig(): [number, number, number, number, boolean] {
 		const startVelocity = (
 			document.querySelector('input[name="start-velocity"]') as HTMLInputElement
 		).valueAsNumber;
@@ -51,6 +51,12 @@
 			document.querySelector('input[name="max-acceleration"]') as HTMLInputElement
 		).valueAsNumber;
 		const reversed = (document.querySelector('input[name="reversed"]') as HTMLInputElement).checked;
+		return [startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed];
+	}
+
+	async function updatePath(pathTableIndex: number) {
+		const [startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed] =
+			getTrajectoryConfig();
 
 		pathTables[pathTableIndex].path = await getPath(
 			pathTables[pathTableIndex].waypoints,
@@ -61,6 +67,21 @@
 			reversed
 		);
 		pathTables = pathTables;
+	}
+
+	function updatePathLocal(pathTableIndex: number) {
+		const [startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed] =
+			getTrajectoryConfig();
+		return invoke<TrajectoryResponse>('generate_trajectory_tauri', {
+			waypoints: waypointsToPoses(pathTables[pathTableIndex].waypoints),
+			config: {
+				max_velocity: maxVelocity,
+				max_acceleration: maxAcceleration,
+				start_velocity: startVelocity,
+				end_velocity: endVelocity,
+				reversed
+			}
+		});
 	}
 
 	function updatePathTablesAfter(func: () => any, pathTableIndex: number) {
@@ -87,34 +108,19 @@
 				? 'Was able to invoke tauri function, will use Rust trajectory generation'
 				: 'Was not able to invoke tauri function, will use TrajectoryAPI'
 		);
-		getPath = ON_TAURI
-			? (waypoints, startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed) => {
-					invoke('generate_trajectory_tauri', {
-						waypoints: waypointsToPoses(waypoints),
-						config: {
-							max_velocity: maxVelocity,
-							max_acceleration: maxAcceleration,
-							start_velocity: startVelocity,
-							end_velocity: endVelocity,
-							reversed
-						}
-					})
-						.then((val) => {
-							console.log(val);
-						})
-						.catch((err) => {
-							console.log(err);
-						});
-					return fetchPath(
-						waypoints,
-						startVelocity,
-						endVelocity,
-						maxVelocity,
-						maxAcceleration,
+		if (ON_TAURI) {
+			getPath = (waypoints, startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed) =>
+				invoke<TrajectoryResponse>('generate_trajectory_tauri', {
+					waypoints: waypointsToPoses(waypoints),
+					config: {
+						max_velocity: maxVelocity,
+						max_acceleration: maxAcceleration,
+						start_velocity: startVelocity,
+						end_velocity: endVelocity,
 						reversed
-					);
-			  }
-			: getPath;
+					}
+				});
+		}
 		const val = getPath(
 			pathTables[0].waypoints,
 			initialTrajectoryConfig.startVelocity,
@@ -123,6 +129,7 @@
 			initialTrajectoryConfig.maxAcceleration,
 			initialTrajectoryConfig.reversed
 		);
+
 		if (val instanceof Promise) {
 			val.then((startPath) => {
 				console.log(startPath);

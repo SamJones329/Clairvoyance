@@ -61,7 +61,8 @@ fn test_for_tauri() -> bool {
 // }
 #[tauri::command]
 fn generate_trajectory_tauri(waypoints: Vec<Pose2d>, config: TrajectoryConfigNoConstraints) -> Trajectory {
-  println!("Generating trajectory...");
+  println!("Generating trajectory with the following parameters:\n\tPath Type: Quintic Hermite Splines\n\tnumPts: {}\n\tMax V(m/s): {}\n\tMax A(m/s/s): {}\n\tStart V(m/s): {}\n\tEnd V(m/s): {}\n\tReversed?: {}", waypoints.len(), config.max_velocity, config.max_acceleration, config.start_velocity, config.end_velocity, config.reversed);
+  println!("Points:\n{:?}\n", waypoints);
   generate_trajectory(waypoints, config.to_trajectory_config())
 }
 

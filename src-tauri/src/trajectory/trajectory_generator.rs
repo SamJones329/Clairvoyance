@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::geometry::{Pose2d, Translation2d, Rotation2d, Transform2d};
 use crate::trajectory::TrajectoryConfig;
 
@@ -5,7 +7,7 @@ use super::{Spline, Trajectory, trajectory_parameterizer};
 use super::spline_helper::quintic_splines_from_waypoints;
 use super::spline_parameterizer::{PoseWithCurvature, self, MalformedSplineError};
 
-pub fn spline_points_from_splines<const degree: usize>(splines: &Vec<Spline<degree>>) -> Result<Vec<PoseWithCurvature>, MalformedSplineError> {
+pub fn spline_points_from_splines<const DEGREE: usize>(splines: &Vec<Spline<DEGREE>>) -> Result<Vec<PoseWithCurvature>, MalformedSplineError> {
     // Create the vector of spline points.
     let mut spline_points = Vec::<PoseWithCurvature>::new();
 
@@ -21,9 +23,12 @@ pub fn spline_points_from_splines<const degree: usize>(splines: &Vec<Spline<degr
         // point because it's a duplicate of the last point from the previous
         // spline.
         if points.is_ok() {
-            spline_points.append(&mut points.unwrap());
+            let mut points_without_first = points.unwrap().split_off(1);
+            spline_points.append(&mut points_without_first);
         } else {
-            return Err(points.unwrap_err());
+            let err = points.unwrap_err();
+            println!("{}", err);
+            return Err(err);
         }
     }
 
@@ -51,6 +56,8 @@ pub fn generate_trajectory(waypoints: Vec<Pose2d>, config: TrajectoryConfig) -> 
     }
     let points_result = spline_points_from_splines::<5>(&quintic_splines_from_waypoints(new_waypoints));
     if points_result.is_err() {
+        println!("{}", points_result.unwrap_err());
+        println!("Returning do nothing trajectory.");
         return Trajectory::do_nothing();
     }
     let mut points = points_result.unwrap();
@@ -68,7 +75,8 @@ pub fn generate_trajectory(waypoints: Vec<Pose2d>, config: TrajectoryConfig) -> 
         config.end_velocity, config.max_velocity, config.max_acceleration,
         config.reversed);
     if result.is_err() {
-
+        println!("{}", result.unwrap_err());
+        println!("Returning do nothing trajectory.");
         return Trajectory::do_nothing();
     }
     result.unwrap()

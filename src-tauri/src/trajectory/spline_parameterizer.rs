@@ -39,7 +39,7 @@ impl fmt::Display for MalformedSplineError {
  */
 pub fn parameterize<const dim: usize>(spline: &Spline<dim>) -> Result<Vec<PoseWithCurvature>, MalformedSplineError> {
     const t0: f64 = 0.0;
-    const t1: f64 = 0.0;
+    const t1: f64 = 1.0;
 
     let mut spline_points = Vec::<PoseWithCurvature>::new();
 
@@ -51,6 +51,7 @@ pub fn parameterize<const dim: usize>(spline: &Spline<dim>) -> Result<Vec<PoseWi
     // std::stack<StackContents> stack;
     // stack.emplace(StackContents{t0, t1});
     let mut stack = Vec::<StackContents>::new();
+    stack.push(StackContents { t0, t1 });
 
     let mut current: StackContents;
     let mut start: PoseWithCurvature;
@@ -65,7 +66,7 @@ pub fn parameterize<const dim: usize>(spline: &Spline<dim>) -> Result<Vec<PoseWi
       let twist = start.0.log(&end.0);
 
       if twist.dy.abs() > MAX_DY ||
-          twist.dx.abs() > MAX_DY ||
+          twist.dx.abs() > MAX_DX ||
           twist.dth.abs() > MAX_DTH {
         stack.push(StackContents{t0: (current.t0 + current.t1) / 2., t1: current.t1});
         stack.push(StackContents{t0: current.t0, t1: (current.t0 + current.t1) / 2.});

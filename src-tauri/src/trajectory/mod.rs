@@ -51,6 +51,7 @@ impl TrajectoryConfig {
     }
 }
 
+#[derive(Debug)]
 pub struct ControlVector<const size: usize> {
     x: [f64; size],
     y: [f64; size]
@@ -125,7 +126,7 @@ impl<const degree: usize> Spline<degree> {
         // Populate the polynomial bases
         let mut i = 0;
         while i <= degree {
-            polynomial_bases[i] = t.powf(degree as f64 - i as f64);
+            polynomial_bases[i] = t.powf((degree - i) as f64);
             i += 1;
         }
 
@@ -158,11 +159,13 @@ impl<const degree: usize> Spline<degree> {
         // Find the curvature.
         let curvature =
             (dx * ddy - ddx * dy) / ((dx * dx + dy * dy) * dx.hypot(dy));
-
-        (
+        
+        let point = (
             Pose2d::new(Translation2d::from_vector(&combined.slice(s![0..2 as i32])), Rotation2d::from_vector(dx, dy)),
             curvature
-        )
+        );
+
+        point
     }
 }
 
@@ -187,8 +190,8 @@ impl QuinticHermiteSpline {
             // coefficient of the derivative, we can use the power rule and multiply
             // the existing coefficient by its power.
             let k = 5. - i as f64;
-            coefficients[[2,i]] *= k;
-            coefficients[[3,i]] *= k;
+            coefficients[[2,i]] = coefficients[[0,i]] * k;
+            coefficients[[3,i]] = coefficients[[1,i]] * k;
             i += 1;
         }
 
@@ -199,8 +202,8 @@ impl QuinticHermiteSpline {
             // coefficient of the derivative, we can use the power rule and multiply
             // the existing coefficient by its power.
             let k = 4. - i as f64;
-            coefficients[[4,i]] *= k;
-            coefficients[[5,i]] *= k;
+            coefficients[[4,i]] = coefficients[[2,i]] * k;
+            coefficients[[5,i]] = coefficients[[3,i]] * k;
             i += 1;
         }
 
@@ -210,7 +213,7 @@ impl QuinticHermiteSpline {
     }
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, Serialize, Debug)]
 pub struct TrajectoryState {
     pub t: f64,
     pub velocity: f64,
@@ -224,7 +227,7 @@ impl TrajectoryState {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct Trajectory {
     states: Vec<TrajectoryState>,
     total_time: f64
