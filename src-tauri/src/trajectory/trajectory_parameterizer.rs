@@ -25,7 +25,7 @@
 //     units::meters_per_second_t maxVelocity,
 //     units::meters_per_second_squared_t maxAcceleration, bool reversed);
 
-use std::fmt;
+use std::{fmt, f32::INFINITY};
 
 use super::{Trajectory, spline_parameterizer::PoseWithCurvature, TrajectoryConstraint, TrajectoryState};
 
@@ -38,11 +38,22 @@ const EPSILON: f64 = 1E-6;
  */
 #[derive(Clone, Copy)]
 pub struct ConstrainedState {
-    pose: PoseWithCurvature,
-    distance: f64,
-    max_velocity: f64,
-    min_acceleration: f64,
-    max_acceleration: f64
+    pub pose: PoseWithCurvature,
+    pub distance: f64,
+    pub max_velocity: f64,
+    pub min_acceleration: f64,
+    pub max_acceleration: f64
+}
+impl ConstrainedState {
+    pub const fn from_pose(pose: PoseWithCurvature) -> Self {
+        Self {
+            pose,
+            distance: 0.,
+            max_velocity: 0.,
+            min_acceleration: 0.,
+            max_acceleration: 0.
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -55,6 +66,7 @@ impl fmt::Display for ParameterizerError {
     }
 }
 
+#[derive(Debug)]
 pub struct AccelerationLimitError;
 impl fmt::Display for AccelerationLimitError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -67,6 +79,8 @@ pub fn enforce_acceleration_limits(
     constraints: &Vec<Box<dyn TrajectoryConstraint>>,
     state: &mut ConstrainedState
 ) -> Result<(), AccelerationLimitError> {
+    let mut min_acceleration = f64::NEG_INFINITY;
+    let mut max_acceleration = f64::INFINITY;
     for constraint in constraints {
         let factor = if reverse {-1.0} else {1.0};
 
@@ -97,24 +111,24 @@ pub fn time_parameterize_trajectory(
 
     let mut constrained_states = Vec::<ConstrainedState>::with_capacity(points.len());
 
-    constrained_states[0] = ConstrainedState {
+    constrained_states.push(ConstrainedState {
         pose: points.first().unwrap().clone(),
         distance: 0.,
         max_velocity: start_velocity,
         min_acceleration: -max_acceleration,
         max_acceleration
-    };
+    });
     
     let mut predecessor = 0;
     
     // Forward pass
     for i in 0..points.len() {
-        constrained_states[i].pose = points[i];
+        let mut cur_state = ConstrainedState::from_pose(points[i]);
     
         // Begin constraining based on predecessor
-        let ds = constrained_states[i].pose.0.translation().distance_to(
+        let ds = cur_state.pose.0.translation().distance_to(
             constrained_states[predecessor].pose.0.translation());
-        constrained_states[i].distance = ds + constrained_states[predecessor].distance;
+        cur_state.distance = ds + constrained_states[predecessor].distance;
     
         // We may need to iterate to find the maximum end velocity and common
         // acceleration, since acceleration limits may be a function of velocity.
@@ -122,7 +136,7 @@ pub fn time_parameterize_trajectory(
             // Enforce global max velocity and max reachable velocity by global
             // acceleration limit. v_f = √(v_i² + 2ad).
         
-            constrained_states[i].max_velocity = max_velocity.min(
+            cur_state.max_velocity = max_velocity.min(
                 (
                     constrained_states[predecessor].max_velocity 
                     * constrained_states[predecessor].max_velocity 
@@ -131,68 +145,77 @@ pub fn time_parameterize_trajectory(
                 ).sqrt()
             );
         
-            constrained_states[i].min_acceleration = -max_acceleration;
-            constrained_states[i].max_acceleration = max_acceleration;
+            cur_state.min_acceleration = -max_acceleration;
+            cur_state.max_acceleration = max_acceleration;
         
             // At this point, the constrained state is fully constructed apart from
             // all the custom-defined user constraints.
             for constraint in &constraints {
-                constrained_states[i].max_velocity = constrained_states[i].max_velocity.min(
-                    constraint.max_velocity(&constrained_states[i].pose.0,
-                                            constrained_states[i].pose.1,
-                                            constrained_states[i].max_velocity));
-        }
-    
-        // Now enforce all acceleration limits.
-        if enforce_acceleration_limits(reversed, &constraints, &mut constrained_states[i]).is_err() {
-            return Err(ParameterizerError{iteration: i});
-        }
-    
-        if ds < EPSILON {
-            break;
-        }
-    
-        // If the actual acceleration for this state is higher than the max
-        // acceleration that we applied, then we need to reduce the max
-        // acceleration of the predecessor and try again.
-        let actual_acceleration =
-            (constrained_states[i].max_velocity * constrained_states[i].max_velocity -
-                constrained_states[predecessor].max_velocity * constrained_states[predecessor].max_velocity) /
-            (ds * 2.0);
-    
-        // If we violate the max acceleration constraint, let's modify the
-        // predecessor.
-        if constrained_states[i].max_acceleration < actual_acceleration - 1E-6 {
-            constrained_states[predecessor].max_acceleration = constrained_states[i].max_acceleration;
-        } else {
-            // Constrain the predecessor's max acceleration to the current
-            // acceleration.
-            if actual_acceleration > constrained_states[predecessor].min_acceleration + 1E-6 {
-                constrained_states[predecessor].max_acceleration = actual_acceleration;
+                cur_state.max_velocity = cur_state.max_velocity.min(
+                    constraint.max_velocity(&cur_state.pose.0,
+                                            cur_state.pose.1,
+                                            max_velocity));
             }
-            // If the actual acceleration is less than the predecessor's min
-            // acceleration, it will be repaired in the backward pass.
-            break;
+    
+            // Now enforce all acceleration limits.
+            let accel = enforce_acceleration_limits(reversed, &constraints, &mut cur_state);
+            if accel.is_err() {
+                return Err(ParameterizerError{iteration: i});
+            }
+        
+            if ds < EPSILON {
+                break;
+            }
+        
+            // If the actual acceleration for this state is higher than the max
+            // acceleration that we applied, then we need to reduce the max
+            // acceleration of the predecessor and try again.
+            let actual_acceleration =
+                (cur_state.max_velocity * cur_state.max_velocity -
+                    constrained_states[predecessor].max_velocity * constrained_states[predecessor].max_velocity) /
+                (ds * 2.0);
+        
+            // If we violate the max acceleration constraint, let's modify the
+            // predecessor.
+            if cur_state.max_acceleration < actual_acceleration - 1E-6 {
+                constrained_states[predecessor].max_acceleration = cur_state.max_acceleration;
+            } else {
+                // Constrain the predecessor's max acceleration to the current
+                // acceleration.
+                if actual_acceleration > constrained_states[predecessor].min_acceleration + 1E-6 {
+                    constrained_states[predecessor].max_acceleration = actual_acceleration;
+                }
+                // If the actual acceleration is less than the predecessor's min
+                // acceleration, it will be repaired in the backward pass.
+                break;
+            }
         }
-        }
+        constrained_states.push(cur_state);
         predecessor = i;
     }
     
     
     // Backward pass
-    let mut i = points.len() - 1;
-    let mut successor = i;
-    while i >= 0 {
+    let last = points.len();
+    let mut i = last;
+    let mut successor: ConstrainedState = ConstrainedState {
+        pose: constrained_states.last().unwrap().pose.clone(),
+        distance: constrained_states.last().unwrap().distance,
+        max_velocity: end_velocity,
+        min_acceleration: -max_acceleration,
+        max_acceleration
+    };
+    while i >= 1 {
         let ds =
-            constrained_states[i].distance - constrained_states[successor].distance;  // negative
+            constrained_states[i].distance - successor.distance;  // negative
     
         loop {
             // Enforce max velocity limit (reverse)
             // v_f = √(v_i² + 2ad), where v_i = successor.
             let new_max_velocity = (
-                constrained_states[successor].max_velocity 
-                * constrained_states[successor].max_velocity 
-                + constrained_states[successor].min_acceleration 
+                successor.max_velocity 
+                * successor.max_velocity 
+                + successor.min_acceleration 
                 * ds * 2.0
             ).sqrt();
         
@@ -204,8 +227,11 @@ pub fn time_parameterize_trajectory(
             constrained_states[i].max_velocity = new_max_velocity;
         
             // Check all acceleration constraints with the new max velocity.
-            enforce_acceleration_limits(reversed, &constraints, &mut constrained_states[i]);
-        
+            let res = enforce_acceleration_limits(reversed, &constraints, &mut constrained_states[i]);
+            if res.is_err() {
+                return Err(ParameterizerError{iteration: i});
+            }
+
             if ds > -EPSILON {
                 break;
             }
@@ -215,16 +241,16 @@ pub fn time_parameterize_trajectory(
             // successor and try again.
             let actual_acceleration =
                 (constrained_states[i].max_velocity * constrained_states[i].max_velocity -
-                    constrained_states[successor].max_velocity * constrained_states[successor].max_velocity) /
+                    successor.max_velocity * successor.max_velocity) /
                 (ds * 2.0);
             if constrained_states[i].min_acceleration > actual_acceleration + 1E-6 {
-                constrained_states[successor].min_acceleration = constrained_states[i].min_acceleration;
+                constrained_states[last.min(i)].min_acceleration = constrained_states[i].min_acceleration;
             } else {
-                constrained_states[successor].min_acceleration = actual_acceleration;
+                constrained_states[last.min(i)].min_acceleration = actual_acceleration;
                 break;
             }
         }
-        successor = i;
+        successor = constrained_states[i];
         i -= 1;
     }
     
@@ -251,16 +277,16 @@ pub fn time_parameterize_trajectory(
         // Calculate dt.
         let mut dt = 0.;
         if i > 0 {
-        states[i - 1].acceleration = if reversed { -accel } else { accel };
-        if accel.abs() > 1E-6 {
-            // v_f = v_0 + at
-            dt = (state.max_velocity - v) / accel;
-        } else if v.abs() > 1E-6 {
-            // delta_x = vt
-            dt = ds / v;
-        } else {
-            return Err(ParameterizerError{iteration: i});
-        }
+            states[i - 1].acceleration = if reversed { -accel } else { accel };
+            if accel.abs() > 1E-6 {
+                // v_f = v_0 + at
+                dt = (state.max_velocity - v) / accel;
+            } else if v.abs() > 1E-6 {
+                // delta_x = vt
+                dt = ds / v;
+            } else {
+                return Err(ParameterizerError{iteration: i});
+            }
         }
     
         v = state.max_velocity;
@@ -268,12 +294,12 @@ pub fn time_parameterize_trajectory(
     
         t += dt;
     
-        states[i] = TrajectoryState {
+        states.push( TrajectoryState {
             t, 
             velocity: if reversed  {-v} else {v}, 
             acceleration: if reversed {-accel} else {accel},
             pose: state.pose.0, 
-            curvature: state.pose.1};
+            curvature: state.pose.1});
     }
     
     Ok(Trajectory::new(states))

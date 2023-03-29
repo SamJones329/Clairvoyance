@@ -4,7 +4,7 @@ use crate::trajectory::QuinticControlVector;
 
 pub fn quintic_splines_from_waypoints(waypoints: Vec<Pose2d>) -> Vec<QuinticHermiteSpline> {
     let mut splines = Vec::<QuinticHermiteSpline>::with_capacity(waypoints.capacity() - 1);
-    for i in 0..waypoints.len() {
+    for i in 0..waypoints.len()-1 {
         let p0 = waypoints[i];
         let p1 = waypoints[i + 1];
 
