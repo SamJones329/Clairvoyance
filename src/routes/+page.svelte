@@ -150,7 +150,7 @@
 					value={trajConfig.reversed}
 					onChange={(ev) => {
 						trajConfig.reversed = ev.currentTarget.checked;
-						updatePath(selectedPath);
+						pathTables.forEach((_, idx) => updatePath(idx));
 					}}
 				/>
 
@@ -158,28 +158,36 @@
 					name="Max Acceleration"
 					type="number"
 					value={trajConfig.maxAcceleration}
-					onChange={(ev) => (trajConfig.maxAcceleration = parseFloat(ev.currentTarget.value))}
+					onChange={(ev) => {
+						trajConfig.maxAcceleration = parseFloat(ev.currentTarget.value);
+					}}
 				/>
 
 				<Input
 					name="Max Velocity"
 					type="number"
 					value={trajConfig.maxVelocity}
-					onChange={(ev) => (trajConfig.maxVelocity = parseFloat(ev.currentTarget.value))}
+					onChange={(ev) => {
+						trajConfig.maxVelocity = parseFloat(ev.currentTarget.value);
+					}}
 				/>
 
 				<Input
 					name="Start Velocity"
 					type="number"
 					value={trajConfig.startVelocity}
-					onChange={(ev) => (trajConfig.startVelocity = parseFloat(ev.currentTarget.value))}
+					onChange={(ev) => {
+						trajConfig.startVelocity = parseFloat(ev.currentTarget.value);
+					}}
 				/>
 
 				<Input
 					name="End Velocity"
 					type="number"
 					value={trajConfig.endVelocity}
-					onChange={(ev) => (trajConfig.endVelocity = parseFloat(ev.currentTarget.value))}
+					onChange={(ev) => {
+						trajConfig.endVelocity = parseFloat(ev.currentTarget.value);
+					}}
 				/>
 
 				<div class="flex items-center justify-end w-48 h-8 mt-4">
