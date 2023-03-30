@@ -1,11 +1,6 @@
 <script lang="ts">
 	import type { ChangeEventHandler } from 'svelte/elements';
 	export let value: any;
-	// export let onChange: (
-	// 	ev: Event & {
-	// 		currentTarget: EventTarget & HTMLInputElement;
-	// 	}
-	// ) => void;
 	export let onChange: ChangeEventHandler<HTMLInputElement> | null = null;
 	export let name: string;
 	export let type: 'text' | 'number' | 'checkbox' = 'text';
