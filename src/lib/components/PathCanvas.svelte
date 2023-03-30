@@ -93,7 +93,7 @@
 		const canvasBounds = canvas.getBoundingClientRect();
 		return [
 			((clientX - canvasBounds.left + canvas.scrollLeft) / canvasBounds.width) * canvasWidth,
-			((clientY - canvasBounds.top) / canvasBounds.height) * canvasHeight // TODO for some reason goes ~0.43 above 643 but whatever
+			((clientY - canvasBounds.top + canvas.scrollTop) / canvasBounds.height) * canvasHeight // TODO for some reason goes ~0.43 above 643 but whatever
 		];
 	}
 

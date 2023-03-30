@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+
 	import { invoke } from '@tauri-apps/api/tauri';
 	import Button from '$lib/components/Button.svelte';
 	import x from '$lib/assets/x.svg';
@@ -26,9 +28,18 @@
 		reversed: boolean
 	) => Promise<TrajectoryResponse | null> = fetchPath;
 
+	let trajConfig = {
+		startVelocity: initialTrajectoryConfig.startVelocity,
+		endVelocity: initialTrajectoryConfig.endVelocity,
+		maxVelocity: initialTrajectoryConfig.maxVelocity,
+		maxAcceleration: initialTrajectoryConfig.maxAcceleration,
+		reversed: initialTrajectoryConfig.reversed
+	};
+
 	let ON_TAURI = false;
 	let pathTables = initialPathTables;
 
+	let showControls = true;
 	let selectedPath = 0;
 
 	let oldPaths = pathTables;
@@ -39,24 +50,8 @@
 	let importResultOpen = false;
 	let importResults: string[] = [];
 
-	function getTrajectoryConfig(): [number, number, number, number, boolean] {
-		const startVelocity = (
-			document.querySelector('input[name="start-velocity"]') as HTMLInputElement
-		).valueAsNumber;
-		const endVelocity = (document.querySelector('input[name="end-velocity"]') as HTMLInputElement)
-			.valueAsNumber;
-		const maxVelocity = (document.querySelector('input[name="max-velocity"]') as HTMLInputElement)
-			.valueAsNumber;
-		const maxAcceleration = (
-			document.querySelector('input[name="max-acceleration"]') as HTMLInputElement
-		).valueAsNumber;
-		const reversed = (document.querySelector('input[name="reversed"]') as HTMLInputElement).checked;
-		return [startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed];
-	}
-
 	async function updatePath(pathTableIndex: number) {
-		const [startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed] =
-			getTrajectoryConfig();
+		const { startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed } = trajConfig;
 
 		pathTables[pathTableIndex].path = await getPath(
 			pathTables[pathTableIndex].waypoints,
@@ -67,21 +62,6 @@
 			reversed
 		);
 		pathTables = pathTables;
-	}
-
-	function updatePathLocal(pathTableIndex: number) {
-		const [startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed] =
-			getTrajectoryConfig();
-		return invoke<TrajectoryResponse>('generate_trajectory_tauri', {
-			waypoints: waypointsToPoses(pathTables[pathTableIndex].waypoints),
-			config: {
-				max_velocity: maxVelocity,
-				max_acceleration: maxAcceleration,
-				start_velocity: startVelocity,
-				end_velocity: endVelocity,
-				reversed
-			}
-		});
 	}
 
 	function updatePathTablesAfter(func: () => any, pathTableIndex: number) {
@@ -155,191 +135,189 @@
 	<span class="text-violet-300 m-4">Samuel Jones</span>
 </div>
 
-<div class="flex">
-	<div class="w-64 min-w-max bg-zinc-800 h-screen-minus-title p-4 overflow-y-scroll">
-		<form action="" class="flex flex-col items-center">
-			<h2 class="text-xl font-bold">Config</h2>
+<div class="relative flex">
+	{#if showControls}
+		<div
+			class="w-64 flex-shrink-0 flex-grow-0 bg-zinc-800 h-screen-minus-title p-4 overflow-y-scroll"
+		>
+			<form action="" class="flex flex-col items-center">
+				<h2 class="text-xl font-bold">Config</h2>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="reversed">Reversed</label>
-				<input
-					class="w-12 h-4 text-black"
-					type="checkbox"
-					name="reversed"
-					id="reversed"
-					value={initialTrajectoryConfig.reversed}
-				/>
-			</div>
+				<div class="flex items-center justify-end w-48 h-12">
+					<label class="text-right" for="reversed">Reversed</label>
+					<input
+						class="w-12 h-4 text-black"
+						type="checkbox"
+						name="reversed"
+						id="reversed"
+						value={trajConfig.reversed}
+						on:change={(ev) => (trajConfig.reversed = ev.currentTarget.checked)}
+					/>
+				</div>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="clamped-cubic">Clamped Cubic</label>
-				<input
-					class="w-12 h-4 text-black"
-					type="checkbox"
-					name="clamped-cubic"
-					id="clamped-cubic"
-				/>
-			</div>
+				<div class="flex items-center justify-end w-48 h-12">
+					<label class="text-right" for="max-acceleration">Max Acceleration</label>
+					<input
+						class="ml-4 w-12 text-black"
+						type="number"
+						name="max-acceleration"
+						id="max-acceleration"
+						value={trajConfig.maxAcceleration}
+						on:change={(ev) => (trajConfig.maxAcceleration = parseFloat(ev.currentTarget.value))}
+					/>
+				</div>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="max-acceleration">Max Acceleration</label>
-				<input
-					class="ml-4 w-12 text-black"
-					type="number"
-					name="max-acceleration"
-					id="max-acceleration"
-					value={initialTrajectoryConfig.maxAcceleration}
-				/>
-			</div>
+				<div class="flex items-center justify-end w-48 h-12">
+					<label class="text-right" for="max-velocity">Max Velocity</label>
+					<input
+						class="ml-4 w-12 text-black"
+						type="number"
+						name="max-velocity"
+						id="max-velocity"
+						value={trajConfig.maxVelocity}
+						on:change={(ev) => (trajConfig.maxVelocity = parseFloat(ev.currentTarget.value))}
+					/>
+				</div>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="max-velocity">Max Velocity</label>
-				<input
-					class="ml-4 w-12 text-black"
-					type="number"
-					name="max-velocity"
-					id="max-velocity"
-					value={initialTrajectoryConfig.maxVelocity}
-				/>
-			</div>
+				<div class="flex items-center justify-end w-48 h-12">
+					<label class="text-right" for="start-velocity">Start Velocity</label>
+					<input
+						class="ml-4 w-12 text-black"
+						type="number"
+						name="start-velocity"
+						id="start-velocity"
+						value={trajConfig.startVelocity}
+						on:change={(ev) => (trajConfig.startVelocity = parseFloat(ev.currentTarget.value))}
+					/>
+				</div>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="max-centripetal-acceleration"
-					>Max Centripetal Acceleration</label
-				>
-				<input
-					class="ml-4 w-12 text-black"
-					type="number"
-					name="max-centripetal-acceleration"
-					id="max-centripetal-acceleration"
-				/>
-			</div>
+				<div class="flex items-center justify-end w-48 h-12">
+					<label class="text-right" for="end-velocity">End Velocity</label>
+					<input
+						class="ml-4 w-12 text-black"
+						type="number"
+						name="end-velocity"
+						id="end-velocity"
+						value={trajConfig.endVelocity}
+						on:change={(ev) => (trajConfig.endVelocity = parseFloat(ev.currentTarget.value))}
+					/>
+				</div>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="start-velocity">Start Velocity</label>
-				<input
-					class="ml-4 w-12 text-black"
-					type="number"
-					name="start-velocity"
-					id="start-velocity"
-					value={initialTrajectoryConfig.startVelocity}
-				/>
-			</div>
+				<div class="flex items-center justify-end w-48 h-8 mt-4">
+					<input
+						class="w-full h-8 text-black bg-transparent text-white text-xl text-center focus:outline-none border-b-2 focus:rounded-lg focus:border-2 border-violet-300"
+						type="text"
+						name="path-name"
+						aria-label="path name"
+						id="path-name"
+						value={pathTables[selectedPath].title}
+						on:change={(ev) => {
+							pathTables[selectedPath].title = ev.currentTarget.value;
+							pathTables = pathTables;
+						}}
+					/>
+				</div>
 
-			<div class="flex items-center justify-end w-48 h-12">
-				<label class="text-right" for="end-velocity">End Velocity</label>
-				<input
-					class="ml-4 w-12 text-black"
-					type="number"
-					name="end-velocity"
-					id="end-velocity"
-					value={initialTrajectoryConfig.endVelocity}
-				/>
-			</div>
-
-			<div class="flex items-center justify-end w-48 h-8 mt-4">
-				<input
-					class="w-full h-8 text-black bg-transparent text-white text-xl text-center focus:outline-none border-b-2 focus:rounded-lg focus:border-2 border-violet-300"
-					type="text"
-					name="path-name"
-					aria-label="path name"
-					id="path-name"
-					value={pathTables[selectedPath].title}
-					on:change={(ev) => {
-						pathTables[selectedPath].title = ev.currentTarget.value;
-						pathTables = pathTables;
-					}}
-				/>
-			</div>
-
-			<div class="paths mt-4 bg-white">
-				<ul class="flex items-stretch">
+				<div class="paths mt-4 bg-white">
+					<ul class="flex items-stretch rounded-t-lg">
+						{#each pathTables as pathTable, tableIndex}
+							{#if tableIndex == selectedPath}
+								<li class="bg-violet-800 flex-1 text-center">
+									<button>{tableIndex + 1}</button>
+								</li>
+							{:else}
+								<li class="bg-violet-500 hover:bg-violet-600 flex-1 text-center">
+									<button
+										class="w-full"
+										on:click={() => {
+											selectedPath = tableIndex;
+										}}>{tableIndex + 1}</button
+									>
+								</li>
+							{/if}
+						{/each}
+					</ul>
 					{#each pathTables as pathTable, tableIndex}
-						{#if tableIndex == selectedPath}
-							<li class="bg-violet-800 flex-1 text-center"><button>{tableIndex + 1}</button></li>
-						{:else}
-							<li class="bg-violet-500 hover:bg-violet-600 flex-1 text-center">
-								<button
-									class="w-full"
-									on:click={() => {
-										selectedPath = tableIndex;
-									}}>{tableIndex + 1}</button
-								>
-							</li>
-						{/if}
-					{/each}
-				</ul>
-				{#each pathTables as pathTable, tableIndex}
-					<table class={'text-black w-64 ' + (tableIndex === selectedPath ? '' : 'hidden')}>
-						<colgroup>
-							<col />
-							<col />
-							<col />
-						</colgroup>
-						<thead>
-							<tr>
-								<th class="bg-violet-300"
-									><button
-										on:click={updatePathTablesAfter(
-											() => pathTables[tableIndex].waypoints.push({ x: 0, y: 0, th: 0, psi: 0 }),
+						<table class={`text-black w-64 ${tableIndex === selectedPath ? '' : 'hidden'}`}>
+							<colgroup>
+								<col />
+								<col />
+								<col />
+							</colgroup>
+							<thead>
+								<tr>
+									<th class="bg-violet-300"
+										><button
+											on:click={updatePathTablesAfter(
+												() => pathTables[tableIndex].waypoints.push({ x: 0, y: 0, th: 0, psi: 0 }),
+												tableIndex
+											)}>+</button
+										></th
+									>
+									<th>X(m)</th>
+									<th class="bg-violet-300">Y(m)</th>
+									<th>θ(°)</th>
+									<th class="bg-violet-300">ψ(°)</th>
+								</tr>
+							</thead>
+							<tbody>
+								{#each pathTable.waypoints as row, rowIndex}
+									<PathTableRow
+										{row}
+										onClickAddRow={updatePathTablesAfter(
+											() => pathTable.waypoints.splice(rowIndex, 0, { x: 0, y: 0, th: 0, psi: 0 }),
 											tableIndex
-										)}>+</button
-									></th
-								>
-								<th>X(m)</th>
-								<th class="bg-violet-300">Y(m)</th>
-								<th>θ(°)</th>
-								<th class="bg-violet-300">ψ(°)</th>
-							</tr>
-						</thead>
-						<tbody>
-							{#each pathTable.waypoints as row, rowIndex}
-								<PathTableRow
-									{row}
-									onClickAddRow={updatePathTablesAfter(
-										() => pathTable.waypoints.splice(rowIndex, 0, { x: 0, y: 0, th: 0, psi: 0 }),
-										tableIndex
-									)}
-									onClickRemoveRow={updatePathTablesAfter(
-										() => pathTable.waypoints.splice(rowIndex, 1),
-										tableIndex
-									)}
-									updateTableRender={() => (pathTable = pathTable)}
-								/>
-							{/each}
-						</tbody>
-					</table>
-				{/each}
-			</div>
-			<button
-				class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
-				type="button"
-				on:click={() => {
-					exportModalCode = pathToString(
-						pathTables[selectedPath].waypoints,
-						pathTables[selectedPath].title
-					);
-					exportModalOpen = true;
-				}}>Export Selected Path</button
-			>
-			<button
-				type="button"
-				class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
-				on:click={() => {
-					let newimportModalCode = '';
-					for (const path of pathTables) {
-						newimportModalCode += pathToString(path.waypoints, path.title) + '\n';
-					}
-					exportModalCode = newimportModalCode;
-					exportModalOpen = true;
-				}}>Export All Paths</button
-			>
+										)}
+										onClickRemoveRow={updatePathTablesAfter(
+											() => pathTable.waypoints.splice(rowIndex, 1),
+											tableIndex
+										)}
+										updateTableRender={() => (pathTable = pathTable)}
+									/>
+								{/each}
+							</tbody>
+						</table>
+					{/each}
+				</div>
+				<button
+					class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+					type="button"
+					on:click={() => {
+						exportModalCode = pathToString(
+							pathTables[selectedPath].waypoints,
+							pathTables[selectedPath].title
+						);
+						exportModalOpen = true;
+					}}>Export Selected Path</button
+				>
+				<button
+					type="button"
+					class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+					on:click={() => {
+						let newimportModalCode = '';
+						for (const path of pathTables) {
+							newimportModalCode += pathToString(path.waypoints, path.title) + '\n';
+						}
+						exportModalCode = newimportModalCode;
+						exportModalOpen = true;
+					}}>Export All Paths</button
+				>
 
-			<Button onClick={() => (importModalOpen = true)}>Import</Button>
-		</form>
+				<Button onClick={() => (importModalOpen = true)}>Import</Button>
+			</form>
+		</div>
+	{/if}
+	<div class="w-4 flex-shrink-0 bg-zinc-900 h-screen-minus-title">
+		<button class={`absolute top-2 w-4 h-4`} on:click={() => (showControls = !showControls)}>
+			{#if showControls}
+				<FontAwesomeIcon icon={['fas', 'angles-left']} />
+			{:else}
+				<FontAwesomeIcon icon={['fas', 'angles-right']} />
+			{/if}
+		</button>
 	</div>
 
-	<div class="overflow-x-scroll m-8">
+	<div class="overflow-scroll max-h-screen-minus-title p-8">
 		<PathCanvas
 			waypoints={pathTables[selectedPath].waypoints}
 			path={pathTables[selectedPath].path ?? {

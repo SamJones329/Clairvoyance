@@ -22,3 +22,7 @@ input[type=number] {
 .h-screen-minus-title {
   height: calc(100vh - 5rem);
 }
+
+.max-h-screen-minus-title {
+  max-height: calc(100vh - 5rem);
+}
