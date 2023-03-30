@@ -1,5 +1,5 @@
 import adapter from '@sveltejs/adapter-static';
-import { preprocess } from 'svelte-preprocess';
+import preprocess from 'svelte-preprocess';
 
 // SvelteKit Static Adapter Config
 /** @type {import('@sveltejs/kit').Config} */
