@@ -229,6 +229,18 @@
 		ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 		console.log(`initialPose:`, path.initialPose);
 
+		canvas.addEventListener('dblclick', (ev: MouseEvent) => {
+			const [canvasX, canvasY] = clientToCanvasCoords(ev.clientX, ev.clientY);
+			const fieldCoords = canvasToField(canvasX, canvasY);
+			waypoints.push({
+				x: fieldCoords.x,
+				y: fieldCoords.y,
+				psi: 0,
+				th: 0
+			});
+			triggerWaypointUpdate();
+		});
+
 		canvas.addEventListener('mousedown', (ev: MouseEvent) => {
 			const [canvasX, canvasY] = clientToCanvasCoords(ev.clientX, ev.clientY);
 			console.log(`mousedown on canvas at (${canvasX}, ${canvasY})`);
