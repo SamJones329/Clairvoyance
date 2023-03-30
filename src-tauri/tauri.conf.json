@@ -7,8 +7,8 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "clairvoyance",
-    "version": "0.1.0"
+    "productName": "Clairvoyance",
+    "version": "0.1.0-alpha"
   },
   "tauri": {
     "allowlist": {
@@ -29,7 +29,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.github.samjones329",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
