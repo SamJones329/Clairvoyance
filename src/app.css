@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --title-height: 2.5rem;
+}
+
 html {
     background: theme("colors.zinc.700");
     color: white;
@@ -20,9 +24,15 @@ input[type=number] {
 }
 
 .h-screen-minus-title {
-  height: calc(100vh - 5rem);
+  height: calc(100vh - var(--title-height));
 }
 
 .max-h-screen-minus-title {
-  max-height: calc(100vh - 5rem);
+  max-height: calc(100vh - var(--title-height));
+}
+
+@media screen and (min-width: 640px) {
+  :root {
+    --title-height: 5rem;
+  }
 }

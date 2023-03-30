@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 
+	import Input from '$lib/components/Input.svelte';
 	import { invoke } from '@tauri-apps/api/tauri';
 	import Button from '$lib/components/Button.svelte';
 	import x from '$lib/assets/x.svg';
@@ -130,78 +131,56 @@
 	});
 </script>
 
-<div class="bg-violet-900 text-white flex items-center justify-between h-20">
-	<h1 class="m-4 text-3xl">Clairvoyance</h1>
+<div class="bg-violet-900 text-white flex items-center justify-between h-10 lg:h-20">
+	<h1 class="m-4 text-xl lg:text-3xl">Clairvoyance</h1>
 	<span class="text-violet-300 m-4">Samuel Jones</span>
 </div>
 
 <div class="relative flex">
 	{#if showControls}
 		<div
-			class="w-64 flex-shrink-0 flex-grow-0 bg-zinc-800 h-screen-minus-title p-4 overflow-y-scroll"
+			class="w-48 lg:w-64 flex-shrink-0 flex-grow-0 bg-zinc-800 h-screen-minus-title p-4 overflow-y-scroll"
 		>
 			<form action="" class="flex flex-col items-center">
 				<h2 class="text-xl font-bold">Config</h2>
 
-				<div class="flex items-center justify-end w-48 h-12">
-					<label class="text-right" for="reversed">Reversed</label>
-					<input
-						class="w-12 h-4 text-black"
-						type="checkbox"
-						name="reversed"
-						id="reversed"
-						value={trajConfig.reversed}
-						on:change={(ev) => (trajConfig.reversed = ev.currentTarget.checked)}
-					/>
-				</div>
+				<Input
+					name="Reversed"
+					type="checkbox"
+					value={trajConfig.reversed}
+					onChange={(ev) => {
+						trajConfig.reversed = ev.currentTarget.checked;
+						updatePath(selectedPath);
+					}}
+				/>
 
-				<div class="flex items-center justify-end w-48 h-12">
-					<label class="text-right" for="max-acceleration">Max Acceleration</label>
-					<input
-						class="ml-4 w-12 text-black"
-						type="number"
-						name="max-acceleration"
-						id="max-acceleration"
-						value={trajConfig.maxAcceleration}
-						on:change={(ev) => (trajConfig.maxAcceleration = parseFloat(ev.currentTarget.value))}
-					/>
-				</div>
+				<Input
+					name="Max Acceleration"
+					type="number"
+					value={trajConfig.maxAcceleration}
+					onChange={(ev) => (trajConfig.maxAcceleration = parseFloat(ev.currentTarget.value))}
+				/>
 
-				<div class="flex items-center justify-end w-48 h-12">
-					<label class="text-right" for="max-velocity">Max Velocity</label>
-					<input
-						class="ml-4 w-12 text-black"
-						type="number"
-						name="max-velocity"
-						id="max-velocity"
-						value={trajConfig.maxVelocity}
-						on:change={(ev) => (trajConfig.maxVelocity = parseFloat(ev.currentTarget.value))}
-					/>
-				</div>
+				<Input
+					name="Max Velocity"
+					type="number"
+					value={trajConfig.maxVelocity}
+					onChange={(ev) => (trajConfig.maxVelocity = parseFloat(ev.currentTarget.value))}
+				/>
 
-				<div class="flex items-center justify-end w-48 h-12">
-					<label class="text-right" for="start-velocity">Start Velocity</label>
-					<input
-						class="ml-4 w-12 text-black"
-						type="number"
-						name="start-velocity"
-						id="start-velocity"
-						value={trajConfig.startVelocity}
-						on:change={(ev) => (trajConfig.startVelocity = parseFloat(ev.currentTarget.value))}
-					/>
-				</div>
+				<Input
+					name="Start Velocity"
+					type="number"
+					value={trajConfig.startVelocity}
+					onChange={(ev) => (trajConfig.startVelocity = parseFloat(ev.currentTarget.value))}
+				/>
 
-				<div class="flex items-center justify-end w-48 h-12">
-					<label class="text-right" for="end-velocity">End Velocity</label>
-					<input
-						class="ml-4 w-12 text-black"
-						type="number"
-						name="end-velocity"
-						id="end-velocity"
-						value={trajConfig.endVelocity}
-						on:change={(ev) => (trajConfig.endVelocity = parseFloat(ev.currentTarget.value))}
-					/>
-				</div>
+				<Input
+					name="End Velocity"
+					type="number"
+					value={trajConfig.endVelocity}
+					onChange={(ev) => (trajConfig.endVelocity = parseFloat(ev.currentTarget.value))}
+				/>
 
 				<div class="flex items-center justify-end w-48 h-8 mt-4">
 					<input
@@ -238,7 +217,7 @@
 						{/each}
 					</ul>
 					{#each pathTables as pathTable, tableIndex}
-						<table class={`text-black w-64 ${tableIndex === selectedPath ? '' : 'hidden'}`}>
+						<table class={`text-black w-48 lg:w-64 ${tableIndex === selectedPath ? '' : 'hidden'}`}>
 							<colgroup>
 								<col />
 								<col />
@@ -280,7 +259,7 @@
 					{/each}
 				</div>
 				<button
-					class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+					class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
 					type="button"
 					on:click={() => {
 						exportModalCode = pathToString(
@@ -288,11 +267,11 @@
 							pathTables[selectedPath].title
 						);
 						exportModalOpen = true;
-					}}>Export Selected Path</button
+					}}>Export Path</button
 				>
 				<button
 					type="button"
-					class="w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+					class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
 					on:click={() => {
 						let newimportModalCode = '';
 						for (const path of pathTables) {

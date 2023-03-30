@@ -32,18 +32,24 @@
 		<button on:click={onClickRemoveRow}>-</button>
 		<button on:click={onClickAddRow}>+</button>
 	</td>
-	<td class="pb-1"><input type="number" class="w-12 ml-1" value={row.x} on:change={onChangeX} /></td
-	>
-	<td class="bg-violet-300 pb-1"
-		><input type="number" class="w-12 ml-1 bg-violet-300" value={row.y} on:change={onChangeY} /></td
-	>
 	<td class="pb-1"
-		><input type="number" class="w-12 ml-1" value={row.th} on:change={onChangeTh} /></td
+		><input type="number" class="w-8 lg:w-12 ml-1" value={row.x} on:change={onChangeX} /></td
 	>
 	<td class="bg-violet-300 pb-1"
 		><input
 			type="number"
-			class="w-12 ml-1 bg-violet-300"
+			class="w-8 lg:w-12 ml-1 bg-violet-300"
+			value={row.y}
+			on:change={onChangeY}
+		/></td
+	>
+	<td class="pb-1"
+		><input type="number" class="w-8 lg:w-12 ml-1" value={row.th} on:change={onChangeTh} /></td
+	>
+	<td class="bg-violet-300 pb-1"
+		><input
+			type="number"
+			class="w-8 lg:w-12 ml-1 bg-violet-300"
 			value={row.psi}
 			on:change={onChangePsi}
 		/></td

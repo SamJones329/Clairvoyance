@@ -4,7 +4,8 @@
 			currentTarget: EventTarget & HTMLButtonElement;
 		}
 	) => void;
-	export let width = 'w-48';
+	export let width = 'w-36';
+	export let widthLg = 'w-48';
 	export let height = '';
 	export let mX = 'mx-4';
 	export let mTop = 'mt-4';
@@ -16,7 +17,7 @@
 <button
 	on:click={onClick}
 	type="button"
-	class={`${width} ${height} ${invert ? 'bg-white text-violet-800' : 'bg-violet-800 text-white'} ${
-		bold ? 'font-bold' : ''
-	} p-2 rounded-lg ${mX} ${mTop} ${mBtm}`}><slot /></button
+	class={`${width} ${widthLg} ${height} ${
+		invert ? 'bg-white text-violet-800' : 'bg-violet-800 text-white'
+	} ${bold ? 'font-bold' : ''} p-2 rounded-lg ${mX} ${mTop} ${mBtm}`}><slot /></button
 >
