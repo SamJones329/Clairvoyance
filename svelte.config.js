@@ -12,7 +12,7 @@ const config = {
 			fallback: null
 		}),
 		paths: {
-			base: '/clairvoyance'
+			base: ''
 		}
 	},
 
