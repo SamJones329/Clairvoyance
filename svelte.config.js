@@ -12,7 +12,8 @@ const config = {
 			fallback: null
 		}),
 		paths: {
-			base: '/Clairvoyance'
+			base: '/Clairvoyance',
+			relative: true
 		}
 	},
 
