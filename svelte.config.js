@@ -13,7 +13,6 @@ const config = {
 		}),
 		paths: {
 			base: '',
-			assets: '/Clairvoyance',
 			relative: true
 		}
 	},
