@@ -210,11 +210,12 @@
 						{#each pathTables as pathTable, tableIndex}
 							{#if tableIndex == selectedPath}
 								<li class="bg-violet-800 flex-1 text-center">
-									<button>{tableIndex + 1}</button>
+									<button type="button">{tableIndex + 1}</button>
 								</li>
 							{:else}
 								<li class="bg-violet-500 hover:bg-violet-600 flex-1 text-center">
 									<button
+										type="button"
 										class="w-full"
 										on:click={() => {
 											selectedPath = tableIndex;
@@ -235,6 +236,7 @@
 								<tr>
 									<th class="bg-violet-300"
 										><button
+											type="button"
 											on:click={updatePathTablesAfter(
 												() => pathTables[tableIndex].waypoints.push({ x: 0, y: 0, th: 0, psi: 0 }),
 												tableIndex
@@ -295,7 +297,11 @@
 		</div>
 	{/if}
 	<div class="w-4 flex-shrink-0 bg-zinc-900 h-screen-minus-title">
-		<button class={`absolute top-2 w-4 h-4`} on:click={() => (showControls = !showControls)}>
+		<button
+			type="button"
+			class={`absolute top-2 w-4 h-4`}
+			on:click={() => (showControls = !showControls)}
+		>
 			{#if showControls}
 				<FontAwesomeIcon icon={['fas', 'angles-left']} />
 			{:else}
@@ -323,7 +329,7 @@
 			<div class="mx-auto max-w-max">
 				<div class="flex text-white">
 					<h2 class="max-w-max pt-8 pb-4 text-bold text-xl">Exported Path Code</h2>
-					<button on:click={() => copyText(exportModalCode)} class="mt-8 mb-4 mx-4"
+					<button type="button" on:click={() => copyText(exportModalCode)} class="mt-8 mb-4 mx-4"
 						><div><i class="fa-regular fa-copy" /></div></button
 					>
 				</div>
@@ -335,8 +341,10 @@
 					</p>
 				</div>
 			</div>
-			<button class="w-4 h-4 absolute top-4 right-4" on:click={() => (exportModalOpen = false)}
-				><img src={x} alt="" srcset="" /></button
+			<button
+				type="button"
+				class="w-4 h-4 absolute top-4 right-4"
+				on:click={() => (exportModalOpen = false)}><img src={x} alt="" srcset="" /></button
 			>
 		</div>
 	</div>
@@ -378,8 +386,10 @@
 					>
 				</div>
 			</div>
-			<button class="w-4 h-4 absolute top-4 right-4" on:click={() => (importModalOpen = false)}
-				><img src={x} alt="" srcset="" /></button
+			<button
+				type="button"
+				class="w-4 h-4 absolute top-4 right-4"
+				on:click={() => (importModalOpen = false)}><img src={x} alt="" srcset="" /></button
 			>
 		</div>
 	</div>
