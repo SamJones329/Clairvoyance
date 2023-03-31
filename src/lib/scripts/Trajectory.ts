@@ -1,4 +1,4 @@
-import { degreesToRadians } from '$lib/scripts/math';
+import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
 import { toCamelCase } from './text-manipulation';
 
 interface Pose {
@@ -225,7 +225,7 @@ function pathToString(points: SwerveTrajectoryWaypoint[], name?: string) {
  * @param pathCode 
  */
 function stringToPaths(pathCode: string): TrajectoryContainer[] {
-    const paths = pathCode.match(/\w+\s*=\s*new\s+SwerveTrajectoryWaypoint\[\]\s*\{(?:\s|\w|[(),.])+\};/g)
+    const paths = pathCode.match(/\w+\s*=\s*new\s+SwerveTrajectoryWaypoint\[\]\s*\{(?:\s|\w|[-(),.])+\};/g)
     console.log(`Found ${paths?.length ?? 0} to import`)
     const points: TrajectoryContainer[] = []
     if(!paths) return points
@@ -233,24 +233,29 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
         console.log(path)
         const title = path.match(/\s*\w+(?=\s*=)/g)?.[0].trim() ?? "noTitleFound"
         console.log(title)
-        const ptMatches = path.matchAll(/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?:Rotation2d\.fromDegrees|new\s+Rotation2d)\s*\((?<orientataion>\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?:Rotation2d\.fromDegrees|new\s+Rotation2d)\s*\((?<heading>\d*\.\d+|\d+\.?)\s*\)\s*\))+/g)
+        const ptMatches = path.matchAll(/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>-?\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<orientation_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<orientation>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<heading_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<heading>-?\d*\.\d+|\d+\.?)\s*\)\s*\))+/g)
         const waypoints: SwerveTrajectoryWaypoint[] = []
         for(const match of ptMatches) {
             console.log(match)
-            if(match.groups)
+            if(match.groups) {
+                let th = parseFloat(match.groups['heading']), psi = parseFloat(match.groups['orientation']);
+                if(match.groups['orientation_constructor'].search('fromRadians') > -1 || match.groups['heading_constructor'].search("new") > -1) {
+                    th = radiansToDegrees(th)
+                    psi = radiansToDegrees(psi)
+                }
                 waypoints.push({
                     x: parseFloat(match.groups['translationX']),
                     y: parseFloat(match.groups['translationY']),
-                    th: parseFloat(match.groups['heading']),
-                    psi: parseFloat(match.groups['orientation']),
+                    th, psi
                 })
-            else 
+            } else {
                 waypoints.push({
                     x: 0,
                     y: 0,
                     th: 0,
                     psi: 0
                 })
+            }
         }
         console.log(ptMatches)
         points.push({
