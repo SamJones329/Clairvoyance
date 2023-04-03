@@ -9,12 +9,12 @@
 	import {
 		fetchPath,
 		getDefaultPath,
-		initialTrajectoryConfig,
 		pathToString,
 		stringToPaths,
 		waypointsToPoses,
 		type SwerveTrajectoryWaypoint,
-		type TrajectoryResponse
+		type TrajectoryResponse,
+		type TrajectoryConfig
 	} from '$lib/scripts/Trajectory';
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
@@ -22,20 +22,8 @@
 
 	let getPath: (
 		waypoints: SwerveTrajectoryWaypoint[],
-		startVelocity: number,
-		endVelocity: number,
-		maxVelocity: number,
-		maxAcceleration: number,
-		reversed: boolean
+		config: TrajectoryConfig
 	) => Promise<TrajectoryResponse | null> = fetchPath;
-
-	let trajConfig = {
-		startVelocity: initialTrajectoryConfig.startVelocity,
-		endVelocity: initialTrajectoryConfig.endVelocity,
-		maxVelocity: initialTrajectoryConfig.maxVelocity,
-		maxAcceleration: initialTrajectoryConfig.maxAcceleration,
-		reversed: initialTrajectoryConfig.reversed
-	};
 
 	let ON_TAURI = false;
 	let pathTables = [getDefaultPath()];
@@ -52,15 +40,9 @@
 	let importResults: string[] = [];
 
 	async function updatePath(pathTableIndex: number) {
-		const { startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed } = trajConfig;
-
 		pathTables[pathTableIndex].path = await getPath(
 			pathTables[pathTableIndex].waypoints,
-			startVelocity,
-			endVelocity,
-			maxVelocity,
-			maxAcceleration,
-			reversed
+			pathTables[pathTableIndex].config
 		);
 		pathTables = pathTables;
 	}
@@ -90,26 +72,13 @@
 				: 'Was not able to invoke tauri function, will use TrajectoryAPI'
 		);
 		if (ON_TAURI) {
-			getPath = (waypoints, startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed) =>
+			getPath = (waypoints, config) =>
 				invoke<TrajectoryResponse>('generate_trajectory_tauri', {
 					waypoints: waypointsToPoses(waypoints),
-					config: {
-						max_velocity: maxVelocity,
-						max_acceleration: maxAcceleration,
-						start_velocity: startVelocity,
-						end_velocity: endVelocity,
-						reversed
-					}
+					config
 				});
 		}
-		const val = getPath(
-			pathTables[0].waypoints,
-			initialTrajectoryConfig.startVelocity,
-			initialTrajectoryConfig.endVelocity,
-			initialTrajectoryConfig.maxVelocity,
-			initialTrajectoryConfig.maxAcceleration,
-			initialTrajectoryConfig.reversed
-		);
+		const val = getPath(pathTables[0].waypoints, pathTables[0].config);
 
 		if (val instanceof Promise) {
 			val.then((startPath) => {
@@ -147,46 +116,46 @@
 				<Input
 					name="Reversed"
 					type="checkbox"
-					value={trajConfig.reversed}
+					value={pathTables[selectedPath].config.reversed}
 					onChange={(ev) => {
-						trajConfig.reversed = ev.currentTarget.checked;
-						pathTables.forEach((_, idx) => updatePath(idx));
+						pathTables[selectedPath].config.reversed = ev.currentTarget.checked;
+						updatePath(selectedPath);
 					}}
 				/>
 
 				<Input
 					name="Max Acceleration"
 					type="number"
-					value={trajConfig.maxAcceleration}
+					value={pathTables[selectedPath].config.maxAcceleration}
 					onChange={(ev) => {
-						trajConfig.maxAcceleration = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.maxAcceleration = parseFloat(ev.currentTarget.value);
 					}}
 				/>
 
 				<Input
 					name="Max Velocity"
 					type="number"
-					value={trajConfig.maxVelocity}
+					value={pathTables[selectedPath].config.maxVelocity}
 					onChange={(ev) => {
-						trajConfig.maxVelocity = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.maxVelocity = parseFloat(ev.currentTarget.value);
 					}}
 				/>
 
 				<Input
 					name="Start Velocity"
 					type="number"
-					value={trajConfig.startVelocity}
+					value={pathTables[selectedPath].config.startVelocity}
 					onChange={(ev) => {
-						trajConfig.startVelocity = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.startVelocity = parseFloat(ev.currentTarget.value);
 					}}
 				/>
 
 				<Input
 					name="End Velocity"
 					type="number"
-					value={trajConfig.endVelocity}
+					value={pathTables[selectedPath].config.endVelocity}
 					onChange={(ev) => {
-						trajConfig.endVelocity = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.endVelocity = parseFloat(ev.currentTarget.value);
 					}}
 				/>
 
@@ -298,6 +267,7 @@
 					on:click={() => {
 						exportModalCode = pathToString(
 							pathTables[selectedPath].waypoints,
+							pathTables[selectedPath].config,
 							pathTables[selectedPath].title
 						);
 						exportModalOpen = true;
@@ -309,7 +279,7 @@
 					on:click={() => {
 						let newimportModalCode = '';
 						for (const path of pathTables) {
-							newimportModalCode += pathToString(path.waypoints, path.title) + '\n';
+							newimportModalCode += pathToString(path.waypoints, path.config, path.title) + '\n';
 						}
 						exportModalCode = newimportModalCode;
 						exportModalOpen = true;

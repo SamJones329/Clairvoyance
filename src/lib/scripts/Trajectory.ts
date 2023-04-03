@@ -47,10 +47,19 @@ interface TrajectoryResponse {
 	initialPose: Pose;
 }
 
+interface TrajectoryConfig {
+	startVelocity: number;
+	endVelocity: number;
+	maxVelocity: number;
+	maxAcceleration: number;
+	reversed: boolean;
+}
+
 interface TrajectoryContainer {
 	title: string;
 	waypoints: SwerveTrajectoryWaypoint[];
 	path: TrajectoryResponse | null;
+	config: TrajectoryConfig;
 }
 
 function getDefaultPath(): TrajectoryContainer {
@@ -70,16 +79,20 @@ function getDefaultPath(): TrajectoryContainer {
 				psi: 0
 			}
 		],
-		path: null
+		path: null,
+		config: getDefaultTrajectoryConfig()
 	};
 }
-const initialTrajectoryConfig = {
-	startVelocity: 0,
-	endVelocity: 0,
-	maxVelocity: 4.5,
-	maxAcceleration: 3.5,
-	reversed: false
-};
+
+function getDefaultTrajectoryConfig(): TrajectoryConfig {
+	return {
+		startVelocity: 0,
+		endVelocity: 0,
+		maxVelocity: 4.5,
+		maxAcceleration: 3.5,
+		reversed: false
+	};
+}
 
 function waypointsToPoses(waypoints: SwerveTrajectoryWaypoint[]) {
 	return waypoints.map((waypoint) => {
@@ -97,12 +110,9 @@ function waypointsToPoses(waypoints: SwerveTrajectoryWaypoint[]) {
 
 async function fetchPath(
 	waypoints: SwerveTrajectoryWaypoint[],
-	startVelocity: number,
-	endVelocity: number,
-	maxVelocity: number,
-	maxAcceleration: number,
-	reversed: boolean
+	config: TrajectoryConfig
 ): Promise<TrajectoryResponse | null> {
+	const { startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed } = config;
 	try {
 		const response = await fetch(
 			'https://trajectoryapi.fly.dev/api/trajectory/trajectoryfrompoints',
@@ -139,9 +149,11 @@ async function fetchPath(
  * @param name
  * @returns
  */
-function pathToString(points: SwerveTrajectoryWaypoint[], name?: string) {
-	let output =
-		(name ? `public static final SwerveTrajectoryWaypoint[] ${toCamelCase(name)} = ` : '') +
+function pathToString(points: SwerveTrajectoryWaypoint[], config: TrajectoryConfig, name?: string) {
+	const camelCaseName = toCamelCase(name ?? 'default');
+	let output = `public static final TrajectoryConfig ${camelCaseName}Config = new TrajectoryConfig(\n\t${config.maxVelocity}, ${config.maxAcceleration}\n).setKinematics(Constants.SwerveConstants.SwerveKinematics);\n`;
+	output +=
+		(name ? `public static final SwerveTrajectoryWaypoint[] ${camelCaseName} = ` : '') +
 		'new SwerveTrajectoryWaypoint[] {';
 	for (const point of points) {
 		output += `\n\tnew SwerveTrajectoryWaypoint(\n\t\tnew Translation2d(${point.x}, ${point.y}),\n\t\tRotation2d.fromDegrees(${point.psi}),\n\t\tRotation2d.fromDegrees(${point.th})),`;
@@ -205,7 +217,8 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
 		points.push({
 			title,
 			waypoints,
-			path: null
+			path: null,
+			config: getDefaultTrajectoryConfig()
 		});
 	}
 	return points;
@@ -217,11 +230,12 @@ export {
 	pathToString,
 	stringToPaths,
 	getDefaultPath,
-	initialTrajectoryConfig,
+	getDefaultTrajectoryConfig,
 	type TrajectoryState,
 	type TrajectoryRequest,
 	type TrajectoryResponse,
 	type Pose,
 	type SwerveTrajectoryWaypoint,
-	type TrajectoryContainer
+	type TrajectoryContainer,
+	type TrajectoryConfig
 };
