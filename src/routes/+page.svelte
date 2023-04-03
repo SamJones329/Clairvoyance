@@ -8,7 +8,7 @@
 	import PathTableRow from '$lib/components/PathTableRow.svelte';
 	import {
 		fetchPath,
-		initialPathTables,
+		getDefaultPath,
 		initialTrajectoryConfig,
 		pathToString,
 		stringToPaths,
@@ -38,7 +38,7 @@
 	};
 
 	let ON_TAURI = false;
-	let pathTables = initialPathTables;
+	let pathTables = [getDefaultPath()];
 
 	let showControls = true;
 	let selectedPath = 0;
@@ -204,16 +204,15 @@
 						}}
 					/>
 				</div>
-
-				<div class="paths mt-4 bg-white">
-					<ul class="flex items-stretch rounded-t-lg">
+				<div class="overflow-x-scroll w-48 lg:w-64 mt-4 no-scrollbar">
+					<ul class="flex items-stretch">
 						{#each pathTables as pathTable, tableIndex}
 							{#if tableIndex == selectedPath}
-								<li class="bg-violet-800 flex-1 text-center">
+								<li class="bg-violet-800 flex-1 text-center min-w-min px-4">
 									<button type="button">{tableIndex + 1}</button>
 								</li>
 							{:else}
-								<li class="bg-violet-500 hover:bg-violet-600 flex-1 text-center">
+								<li class="bg-violet-500 hover:bg-violet-600 flex-1 text-center min-w-min px-4">
 									<button
 										type="button"
 										class="w-full"
@@ -224,7 +223,21 @@
 								</li>
 							{/if}
 						{/each}
+						<li class="bg-violet-500 hover:bg-violet-600 flex-1 text-center min-w-min px-4">
+							<button
+								type="button"
+								class="w-full"
+								on:click={() => {
+									pathTables.push(getDefaultPath());
+									updatePath(pathTables.length - 1);
+								}}
+							>
+								+
+							</button>
+						</li>
 					</ul>
+				</div>
+				<div class="paths bg-white">
 					{#each pathTables as pathTable, tableIndex}
 						<table class={`text-black w-48 lg:w-64 ${tableIndex === selectedPath ? '' : 'hidden'}`}>
 							<colgroup>
@@ -268,6 +281,17 @@
 						</table>
 					{/each}
 				</div>
+				{#if pathTables.length > 1}
+					<button
+						class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
+						type="button"
+						on:click={() => {
+							pathTables.splice(selectedPath, 1);
+							selectedPath = Math.max(0, selectedPath - 1);
+							pathTables = pathTables;
+						}}>Delete Path</button
+					>
+				{/if}
 				<button
 					class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
 					type="button"
@@ -375,9 +399,9 @@
 					<Button
 						onClick={() => {
 							oldPaths = pathTables;
-							const importedPaths = stringToPaths(importPathTextarea.value).slice(0, 5);
+							const importedPaths = stringToPaths(importPathTextarea.value);
 							importResults = importedPaths.map((path, idx) => {
-								pathTables[idx] = path;
+								pathTables.push(path);
 								return path.title;
 							});
 							importResultOpen = true;

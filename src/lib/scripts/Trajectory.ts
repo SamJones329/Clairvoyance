@@ -53,8 +53,8 @@ interface TrajectoryContainer {
 	path: TrajectoryResponse | null;
 }
 
-const initialPathTables: TrajectoryContainer[] = [
-	{
+function getDefaultPath(): TrajectoryContainer {
+	return {
 		title: 'Default',
 		waypoints: [
 			{
@@ -71,81 +71,8 @@ const initialPathTables: TrajectoryContainer[] = [
 			}
 		],
 		path: null
-	},
-	{
-		title: 'Default',
-		waypoints: [
-			{
-				x: 1,
-				y: 1,
-				th: 0,
-				psi: 0
-			},
-			{
-				x: 2,
-				y: 2,
-				th: 0,
-				psi: 0
-			}
-		],
-		path: null
-	},
-	{
-		title: 'Default',
-		waypoints: [
-			{
-				x: 1,
-				y: 1,
-				th: 0,
-				psi: 0
-			},
-			{
-				x: 2,
-				y: 2,
-				th: 0,
-				psi: 0
-			}
-		],
-		path: null
-	},
-	{
-		title: 'Default',
-		waypoints: [
-			{
-				x: 1,
-				y: 1,
-				th: 0,
-				psi: 0
-			},
-			{
-				x: 2,
-				y: 2,
-				th: 0,
-				psi: 0
-			}
-		],
-		path: null
-	},
-	{
-		title: 'Default',
-		waypoints: [
-			{
-				x: 1,
-				y: 1,
-				th: 0,
-				psi: 0
-			},
-			{
-				x: 2,
-				y: 2,
-				th: 0,
-				psi: 0
-			}
-		],
-		path: null
-	}
-];
-
+	};
+}
 const initialTrajectoryConfig = {
 	startVelocity: 0,
 	endVelocity: 0,
@@ -289,7 +216,7 @@ export {
 	fetchPath,
 	pathToString,
 	stringToPaths,
-	initialPathTables,
+	getDefaultPath,
 	initialTrajectoryConfig,
 	type TrajectoryState,
 	type TrajectoryRequest,

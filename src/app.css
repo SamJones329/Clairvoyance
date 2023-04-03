@@ -36,3 +36,12 @@ input[type=number] {
     --title-height: 5rem;
   }
 }
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  width: 0 !important;
+}
