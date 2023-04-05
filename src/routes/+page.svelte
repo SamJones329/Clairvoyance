@@ -301,39 +301,33 @@
 					{/each}
 				</div>
 				{#if pathTables.length > 1}
-					<button
-						class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
-						type="button"
-						on:click={() => {
+					<Button
+						onClick={() => {
 							pathTables.splice(selectedPath, 1);
 							selectedPath = Math.max(0, selectedPath - 1);
 							pathTables = pathTables;
-						}}>Delete Path</button
+						}}>Delete Path</Button
 					>
 				{/if}
-				<button
-					class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
-					type="button"
-					on:click={() => {
+				<Button
+					onClick={() => {
 						exportModalCode = pathToString(
 							pathTables[selectedPath].waypoints,
 							pathTables[selectedPath].config,
 							pathTables[selectedPath].title
 						);
 						exportModalOpen = true;
-					}}>Export Path</button
+					}}>Export Path</Button
 				>
-				<button
-					type="button"
-					class="w-36 lg:w-48 bg-violet-800 p-2 rounded-lg mx-4 mt-4"
-					on:click={() => {
+				<Button
+					onClick={() => {
 						let newimportModalCode = '';
 						for (const path of pathTables) {
 							newimportModalCode += pathToString(path.waypoints, path.config, path.title) + '\n';
 						}
 						exportModalCode = newimportModalCode;
 						exportModalOpen = true;
-					}}>Export All Paths</button
+					}}>Export All Paths</Button
 				>
 
 				<Button onClick={() => (importModalOpen = true)}>Import</Button>
@@ -396,7 +390,7 @@
 			<div class="mx-auto max-w-max">
 				<div class="flex text-white">
 					<h2 class="max-w-max pt-8 pb-4 text-bold text-xl">Import Path Code</h2>
-					<span class="text-neutral-400 pl-2 pt-[2.25rem]">Units: meters, degrees</span>
+					<span class="text-neutral-400 pl-2 pt-[2.25rem]">Units: meters, radians</span>
 				</div>
 				<div
 					class="bg-white w-[46rem] h-[30rem] text-black whitespace-pre-wrap rounded-lg px-8 py-4 overflow-scroll"
@@ -449,12 +443,11 @@
 						}`}
 					</p>
 				</div>
-				<div>
+				<div class="flex">
 					<Button
 						width="w-20"
+						widthLg="w-20"
 						height="h-12"
-						mX="mx-1"
-						mTop="mt-1"
 						onClick={() => {
 							importResultOpen = false;
 							importModalOpen = false;
@@ -464,6 +457,7 @@
 					>
 					<Button
 						width="w-20"
+						widthLg="w-20"
 						height="h-12"
 						invert={true}
 						onClick={() => {

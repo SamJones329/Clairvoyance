@@ -17,7 +17,7 @@
 <button
 	on:click={onClick}
 	type="button"
-	class={`${width} ${widthLg} ${height} ${
+	class={`${width} lg:${widthLg} ${height} ${
 		invert ? 'bg-white text-violet-800' : 'bg-violet-800 text-white'
 	} ${bold ? 'font-bold' : ''} p-2 rounded-lg ${mX} ${mTop} ${mBtm}`}><slot /></button
 >
