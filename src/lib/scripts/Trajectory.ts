@@ -1,5 +1,5 @@
 import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
-import { toCamelCase } from '$lib/scripts/text-manipulation';
+import { camelCaseToTitleCase, toCamelCase } from '$lib/scripts/text-manipulation';
 
 interface Pose {
 	translation: {
@@ -57,29 +57,47 @@ interface TrajectoryConfig {
 
 interface TrajectoryContainer {
 	title: string;
-	waypoints: SwerveTrajectoryWaypoint[];
-	path: TrajectoryResponse | null;
+	waypoints: SwerveTrajectoryWaypoint[][];
+	paths: TrajectoryResponse[];
 	config: TrajectoryConfig;
+}
+
+function getDoNothingTrajectory() {
+	return {
+		states: [],
+		totalTimeSeconds: 0,
+		initialPose: {
+			translation: {
+				x: 0,
+				y: 0
+			},
+			rotation: {
+				radians: 0
+			}
+		}
+	};
 }
 
 function getDefaultPath(): TrajectoryContainer {
 	return {
 		title: 'Default',
 		waypoints: [
-			{
-				x: 1,
-				y: 1,
-				th: 0,
-				psi: 0
-			},
-			{
-				x: 2,
-				y: 2,
-				th: 0,
-				psi: 0
-			}
+			[
+				{
+					x: 1,
+					y: 1,
+					th: 0,
+					psi: 0
+				},
+				{
+					x: 2,
+					y: 2,
+					th: 0,
+					psi: 0
+				}
+			]
 		],
-		path: null,
+		paths: [],
 		config: getDefaultTrajectoryConfig()
 	};
 }
@@ -111,7 +129,10 @@ function waypointsToPoses(waypoints: SwerveTrajectoryWaypoint[]) {
 async function fetchPath(
 	waypoints: SwerveTrajectoryWaypoint[],
 	config: TrajectoryConfig
-): Promise<TrajectoryResponse | null> {
+): Promise<TrajectoryResponse> {
+	if (waypoints.length < 2) {
+		return new Promise((resolve) => resolve(getDoNothingTrajectory()));
+	}
 	const { startVelocity, endVelocity, maxVelocity, maxAcceleration, reversed } = config;
 	try {
 		const response = await fetch(
@@ -135,11 +156,16 @@ async function fetchPath(
 			}
 		);
 		const data = await response.json();
-		console.log('got data');
+		if (data?.status === 500) {
+			console.warn(
+				'500 server error from trajectory request, probably have some waypoints too close to one another'
+			);
+			return getDoNothingTrajectory();
+		}
 		return data;
 	} catch (error) {
 		console.error('Error:', error);
-		return null;
+		return getDoNothingTrajectory();
 	}
 }
 
@@ -149,16 +175,29 @@ async function fetchPath(
  * @param name
  * @returns
  */
-function pathToString(points: SwerveTrajectoryWaypoint[], config: TrajectoryConfig, name?: string) {
+function pathToString(
+	points: SwerveTrajectoryWaypoint[][],
+	config: TrajectoryConfig,
+	name?: string
+) {
 	const camelCaseName = toCamelCase(name ?? 'default');
-	let output = `public static final TrajectoryConfig ${camelCaseName}Config = new TrajectoryConfig(\n\t${config.maxVelocity}, ${config.maxAcceleration}\n).setKinematics(Constants.SwerveConstants.SwerveKinematics);\n`;
+	let output = `public static final TrajectoryConfig ${camelCaseName}Config = new TrajectoryConfig(\n\t${
+		config.maxVelocity
+	}, ${config.maxAcceleration}\n).setKinematics(Constants.SwerveConstants.SwerveKinematics)${
+		config.reversed ? '\n.setReversed(true)' : ''
+	};\n`;
 	output +=
 		(name ? `public static final SwerveTrajectoryWaypoint[] ${camelCaseName} = ` : '') +
 		'new SwerveTrajectoryWaypoint[] {';
-	for (const point of points) {
-		output += `\n\tnew SwerveTrajectoryWaypoint(\n\t\tnew Translation2d(${point.x}, ${point.y}),\n\t\tRotation2d.fromDegrees(${point.psi}),\n\t\tRotation2d.fromDegrees(${point.th})),`;
+	for (const pointGroup of points) {
+		for (const point of pointGroup) {
+			if (!point) output += `\n\tnull,`;
+			else
+				output += `\n\tnew SwerveTrajectoryWaypoint(\n\t\tnew Translation2d(${point.x}, ${point.y}),\n\t\tRotation2d.fromDegrees(${point.psi}),\n\t\tRotation2d.fromDegrees(${point.th})),`;
+		}
+		output += '\n\tnull,';
 	}
-	return output.slice(0, -1) + '\n};';
+	return output.slice(0, -5) + '\n};\n';
 }
 
 /**
@@ -170,24 +209,30 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
 		/\w+\s*=\s*new\s+SwerveTrajectoryWaypoint\[\]\s*\{(?:\s|\w|[-(),./])+\};/g
 	);
 
+	if (!paths) return [];
+
+	console.debug(`%cImporting ${paths.length} Path Groups`, 'color: cyan');
+
 	const points: TrajectoryContainer[] = [];
-	if (!paths) return points;
-
 	for (const path of paths) {
-		console.log(path);
-
 		// remove comments
 		const pathWithoutComments = path.replace(/\/\/.*/g, '');
 
-		const title =
+		let title =
 			pathWithoutComments.match(/\s*\w+(?:\w|\d)?(?=\s*=)/g)?.[0].trim() ?? 'noTitleFound';
-		console.log(title);
+		title = camelCaseToTitleCase(title);
 		const ptMatches = pathWithoutComments.matchAll(
-			/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>-?\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<orientation_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<orientation>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<heading_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<heading>-?\d*\.\d+|\d+\.?)\s*\)\s*\))+/g
+			/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>-?\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<orientation_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<orientation>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<heading_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<heading>-?\d*\.\d+|\d+\.?)\s*\)\s*\)|null)+/g
 		);
-		const waypoints: SwerveTrajectoryWaypoint[] = [];
+		const waypoints: SwerveTrajectoryWaypoint[][] = [];
+		let curPts: SwerveTrajectoryWaypoint[] = [];
 		for (const match of ptMatches) {
-			console.log(match);
+			if (match[0] === 'null') {
+				console.debug(`%cGot a subpath with ${curPts.length} points`, 'color: white');
+				waypoints.push(curPts);
+				curPts = [];
+				continue;
+			}
 			if (match.groups) {
 				let th = parseFloat(match.groups['heading']),
 					psi = parseFloat(match.groups['orientation']);
@@ -198,14 +243,14 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
 					th = radiansToDegrees(th);
 					psi = radiansToDegrees(psi);
 				}
-				waypoints.push({
+				curPts.push({
 					x: parseFloat(match.groups['translationX']),
 					y: parseFloat(match.groups['translationY']),
 					th,
 					psi
 				});
 			} else {
-				waypoints.push({
+				curPts.push({
 					x: 0,
 					y: 0,
 					th: 0,
@@ -213,11 +258,14 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
 				});
 			}
 		}
-		console.log(ptMatches);
+		if (curPts.length > 0) {
+			waypoints.push(curPts);
+			console.debug(`%cGot a subpath with ${curPts.length} points`, 'color: white');
+		}
 		points.push({
 			title,
 			waypoints,
-			path: null,
+			paths: [],
 			config: getDefaultTrajectoryConfig()
 		});
 	}
@@ -231,6 +279,7 @@ export {
 	stringToPaths,
 	getDefaultPath,
 	getDefaultTrajectoryConfig,
+	getDoNothingTrajectory,
 	type TrajectoryState,
 	type TrajectoryRequest,
 	type TrajectoryResponse,

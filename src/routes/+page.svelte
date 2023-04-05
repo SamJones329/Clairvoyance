@@ -6,12 +6,14 @@
 	import Button from '$lib/components/Button.svelte';
 	import x from '$lib/assets/x.svg';
 	import PathTableRow from '$lib/components/PathTableRow.svelte';
+	import PathTableBreakRow from '$lib/components/PathTableBreakRow.svelte';
 	import {
 		fetchPath,
 		getDefaultPath,
 		pathToString,
 		stringToPaths,
 		waypointsToPoses,
+		getDoNothingTrajectory,
 		type SwerveTrajectoryWaypoint,
 		type TrajectoryResponse,
 		type TrajectoryConfig
@@ -19,11 +21,12 @@
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
 	import { copyText } from '$lib/scripts/copyToClipboard';
+	import { roundFloat } from '$lib/scripts/math';
 
 	let getPath: (
 		waypoints: SwerveTrajectoryWaypoint[],
 		config: TrajectoryConfig
-	) => Promise<TrajectoryResponse | null> = fetchPath;
+	) => Promise<TrajectoryResponse> = fetchPath;
 
 	let ON_TAURI = false;
 	let pathTables = [getDefaultPath()];
@@ -39,20 +42,27 @@
 	let importResultOpen = false;
 	let importResults: string[] = [];
 
-	async function updatePath(pathTableIndex: number) {
-		pathTables[pathTableIndex].path = await getPath(
-			pathTables[pathTableIndex].waypoints,
+	const parseAndRound = (numStr: string) => roundFloat(parseFloat(numStr), 3);
+
+	function updatePaths(pathTableIndex: number) {
+		for (let i = 0; i < pathTables[pathTableIndex].waypoints.length; i++)
+			updatePath(pathTableIndex, i);
+	}
+
+	async function updatePath(pathTableIndex: number, pathsIndex: number) {
+		pathTables[pathTableIndex].paths[pathsIndex] = await getPath(
+			pathTables[pathTableIndex].waypoints[pathsIndex],
 			pathTables[pathTableIndex].config
 		);
 		pathTables = pathTables;
 	}
 
-	function updatePathTablesAfter(func: () => any, pathTableIndex: number) {
+	function updatePathTablesAfter(func: () => any, pathTableIndex: number, pathsIndex: number) {
 		return () => {
 			const retVal = func();
 			pathTables = pathTables;
 
-			updatePath(pathTableIndex);
+			updatePath(pathTableIndex, pathsIndex);
 
 			return retVal;
 		};
@@ -63,10 +73,9 @@
 			(await invoke('test_for_tauri')
 				.then((val) => (typeof val === 'boolean' ? val : false))
 				.catch((err) => {
-					console.log(`Error getting tauri: ${err}`);
 					return false;
 				})) ?? false;
-		console.log(
+		console.info(
 			ON_TAURI
 				? 'Was able to invoke tauri function, will use Rust trajectory generation'
 				: 'Was not able to invoke tauri function, will use TrajectoryAPI'
@@ -78,22 +87,16 @@
 					config
 				});
 		}
-		const val = getPath(pathTables[0].waypoints, pathTables[0].config);
+		const val = getPath(pathTables[0].waypoints[0], pathTables[0].config);
 
 		if (val instanceof Promise) {
 			val.then((startPath) => {
-				console.log(startPath);
-				pathTables.forEach((pathTable, idx) => {
-					console.log(`setting start path ${idx}`);
-					pathTable.path = startPath;
-				});
+				pathTables[0].paths = [startPath];
 				pathTables = pathTables;
 			});
 		} else {
-			console.log(val);
 			pathTables.forEach((pathTable, idx) => {
-				console.log(`setting start path ${idx}`);
-				pathTable.path = val;
+				pathTable.paths = [val];
 			});
 			pathTables = pathTables;
 		}
@@ -119,7 +122,7 @@
 					value={pathTables[selectedPath].config.reversed}
 					onChange={(ev) => {
 						pathTables[selectedPath].config.reversed = ev.currentTarget.checked;
-						updatePath(selectedPath);
+						updatePaths(selectedPath);
 					}}
 				/>
 
@@ -128,7 +131,7 @@
 					type="number"
 					value={pathTables[selectedPath].config.maxAcceleration}
 					onChange={(ev) => {
-						pathTables[selectedPath].config.maxAcceleration = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.maxAcceleration = parseAndRound(ev.currentTarget.value);
 					}}
 				/>
 
@@ -137,7 +140,7 @@
 					type="number"
 					value={pathTables[selectedPath].config.maxVelocity}
 					onChange={(ev) => {
-						pathTables[selectedPath].config.maxVelocity = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.maxVelocity = parseAndRound(ev.currentTarget.value);
 					}}
 				/>
 
@@ -146,7 +149,7 @@
 					type="number"
 					value={pathTables[selectedPath].config.startVelocity}
 					onChange={(ev) => {
-						pathTables[selectedPath].config.startVelocity = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.startVelocity = parseAndRound(ev.currentTarget.value);
 					}}
 				/>
 
@@ -155,7 +158,7 @@
 					type="number"
 					value={pathTables[selectedPath].config.endVelocity}
 					onChange={(ev) => {
-						pathTables[selectedPath].config.endVelocity = parseFloat(ev.currentTarget.value);
+						pathTables[selectedPath].config.endVelocity = parseAndRound(ev.currentTarget.value);
 					}}
 				/>
 
@@ -198,7 +201,7 @@
 								class="w-full"
 								on:click={() => {
 									pathTables.push(getDefaultPath());
-									updatePath(pathTables.length - 1);
+									updatePaths(pathTables.length - 1);
 								}}
 							>
 								+
@@ -220,8 +223,12 @@
 										><button
 											type="button"
 											on:click={updatePathTablesAfter(
-												() => pathTables[tableIndex].waypoints.push({ x: 0, y: 0, th: 0, psi: 0 }),
-												tableIndex
+												() =>
+													pathTables[tableIndex].waypoints[
+														pathTables[tableIndex].waypoints.length - 1
+													].push({ x: 0, y: 0, th: 0, psi: 0 }),
+												tableIndex,
+												pathTables[tableIndex].waypoints.length - 1
 											)}>+</button
 										></th
 									>
@@ -232,20 +239,63 @@
 								</tr>
 							</thead>
 							<tbody>
-								{#each pathTable.waypoints as row, rowIndex}
-									<PathTableRow
-										{row}
-										onClickAddRow={updatePathTablesAfter(
-											() => pathTable.waypoints.splice(rowIndex, 0, { x: 0, y: 0, th: 0, psi: 0 }),
-											tableIndex
-										)}
-										onClickRemoveRow={updatePathTablesAfter(
-											() => pathTable.waypoints.splice(rowIndex, 1),
-											tableIndex
-										)}
-										updateTableRender={() => (pathTable = pathTable)}
-									/>
+								{#each pathTable.waypoints as waypoints, waypointsIndex}
+									{#each waypoints as row, rowIndex}
+										<PathTableRow
+											{row}
+											onClickAddRow={updatePathTablesAfter(
+												() =>
+													pathTable.waypoints[waypointsIndex].splice(rowIndex, 0, {
+														x: 0,
+														y: 0,
+														th: 0,
+														psi: 0
+													}),
+												tableIndex,
+												waypointsIndex
+											)}
+											onClickRemoveRow={updatePathTablesAfter(
+												() => pathTable.waypoints[waypointsIndex].splice(rowIndex, 1),
+												tableIndex,
+												waypointsIndex
+											)}
+											updateTableRender={() => (pathTable = pathTable)}
+										/>
+									{/each}
+									{#if waypointsIndex !== pathTable.waypoints.length - 1}
+										<PathTableBreakRow
+											onClickRemoveRow={() => {
+												const [pointsToMerge] = pathTable.waypoints.splice(waypointsIndex + 1, 1);
+												pathTable.waypoints[waypointsIndex] = waypoints.concat(pointsToMerge);
+												pathTable.paths.pop();
+												updatePaths(tableIndex);
+											}}
+											onClickAddRow={updatePathTablesAfter(
+												() =>
+													pathTable.waypoints[waypointsIndex].push({
+														x: 0,
+														y: 0,
+														th: 0,
+														psi: 0
+													}),
+												tableIndex,
+												waypointsIndex
+											)}
+										/>
+									{/if}
 								{/each}
+								<tr>
+									<td class="bg-violet-500 hover:bg-violet-600 text-white pb-1" colspan="5">
+										<button
+											class="w-full h-4"
+											on:click={() => {
+												pathTable.waypoints.push([]);
+												pathTable.paths.push(getDoNothingTrajectory());
+												pathTables = pathTables;
+											}}>Add Breakpoint</button
+										>
+									</td>
+								</tr>
 							</tbody>
 						</table>
 					{/each}
@@ -307,12 +357,8 @@
 	<div class="overflow-scroll max-h-screen-minus-title p-8">
 		<PathCanvas
 			waypoints={pathTables[selectedPath].waypoints}
-			path={pathTables[selectedPath].path ?? {
-				states: [],
-				totalTimeSeconds: 0,
-				initialPose: { translation: { x: 0, y: 0 }, rotation: { radians: 0 } }
-			}}
-			triggerWaypointUpdate={updatePathTablesAfter(() => {}, selectedPath)}
+			paths={pathTables[selectedPath].paths ?? [getDoNothingTrajectory()]}
+			triggerWaypointUpdate={(pathsIndex) => updatePath(selectedPath, pathsIndex)}
 		/>
 	</div>
 </div>
@@ -370,7 +416,7 @@
 						onClick={() => {
 							oldPaths = pathTables;
 							const importedPaths = stringToPaths(importPathTextarea.value);
-							importResults = importedPaths.map((path, idx) => {
+							importResults = importedPaths.map((path) => {
 								pathTables.push(path);
 								return path.title;
 							});
@@ -413,7 +459,7 @@
 							importResultOpen = false;
 							importModalOpen = false;
 							importPathTextarea.value = '';
-							for (let i = 0; i < importResults.length; i++) updatePath(i);
+							for (let i = 1; i <= importResults.length; i++) updatePaths(pathTables.length - i);
 						}}>{importResults.length ? 'Confirm' : 'Exit'}</Button
 					>
 					<Button
@@ -421,7 +467,7 @@
 						height="h-12"
 						invert={true}
 						onClick={() => {
-							pathTables = oldPaths;
+							importResults.forEach(() => pathTables.pop());
 							importResultOpen = false;
 						}}>Cancel</Button
 					>

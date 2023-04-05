@@ -1,6 +1,6 @@
 <script lang="ts">
 	import fieldImg from '$lib/assets/field-image.png';
-	import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
+	import { degreesToRadians, radiansToDegrees, roundFloat } from '$lib/scripts/math';
 	import type { SwerveTrajectoryWaypoint, TrajectoryResponse } from '$lib/scripts/Trajectory';
 	import { onMount } from 'svelte';
 
@@ -21,23 +21,37 @@
 	const coreRadius = 10;
 
 	// state variables
-	export let waypoints: SwerveTrajectoryWaypoint[];
-	export let path: TrajectoryResponse;
-	export let triggerWaypointUpdate: () => void;
+	export let waypoints: SwerveTrajectoryWaypoint[][];
+	export let paths: TrajectoryResponse[];
+	export let triggerWaypointUpdate: (pathsIndex: number) => void;
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D;
+	let waypointGroupToTransformIndex = -1;
 	let waypointToTransformIndex = -1;
 	let transformMode: TransformMode = TransformMode.Translate;
 	let targetValue: number[];
 
 	// state variable reactions
-	$: waypointBoundBoxes = getWaypointBoundBoxes(waypoints);
-	$: drawPath(path, waypoints, targetValue);
+	$: waypointBoundBoxes = getAllWaypointBoundBoxes(waypoints);
+	const updatePathDrawings = (
+		ctx: CanvasRenderingContext2D,
+		paths: TrajectoryResponse[],
+		targetValue: number[]
+	) => {
+		ctx?.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+		paths.forEach((path, idx) => {
+			drawPath(path, idx, waypoints[idx]);
+		});
+		drawPreview(targetValue);
+	};
+	$: updatePathDrawings(ctx, paths, targetValue);
+
+	function getAllWaypointBoundBoxes(allWaypoints: SwerveTrajectoryWaypoint[][]) {
+		return allWaypoints.map((waypoints) => getWaypointBoundBoxes(waypoints));
+	}
 
 	// helper functions
 	function getWaypointBoundBoxes(waypoints: SwerveTrajectoryWaypoint[]) {
-		console.log('updating bounds');
-		console.log(waypoints);
 		const bounds = [];
 		for (const waypoint of waypoints) {
 			const pxFieldCoords = fieldToCanvas(waypoint.x, waypoint.y); // should be center?
@@ -70,7 +84,6 @@
 				}
 			});
 		}
-		console.log(bounds);
 		return bounds;
 	}
 
@@ -156,13 +169,13 @@
 	// State function
 	function drawPath(
 		path: TrajectoryResponse,
-		waypoints: SwerveTrajectoryWaypoint[],
-		previewTarget: number[]
+		pathIdx: number,
+		waypoints: SwerveTrajectoryWaypoint[]
 	) {
-		console.log('drawing path');
 		if (ctx) {
+			ctx.lineWidth = 3;
 			// update path
-			ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			// ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 			ctx.beginPath();
 			ctx.strokeStyle = '#2bff79';
 			let count = 0;
@@ -172,7 +185,6 @@
 				ctx.arc(fieldCoord.x, fieldCoord.y, 2, 0, 2 * Math.PI);
 			}
 			ctx.stroke();
-			console.log(`counted ${count} states`);
 			ctx.beginPath();
 			ctx.strokeStyle = '#f97316';
 			const pxFieldCoords = waypoints.map((waypoint) => fieldToCanvas(waypoint.x, waypoint.y));
@@ -182,113 +194,132 @@
 
 			ctx.fillStyle = 'rgba(249, 115, 22, 0.25)';
 			ctx.fill();
-
-			// update preview
-			if (waypointToTransformIndex !== -1) {
-				// assuming targetValue is valid
-				switch (transformMode) {
-					case TransformMode.Translate:
-						const psiRads = degreesToRadians(-waypoints[waypointToTransformIndex].psi);
-						drawRobot(previewTarget[0], previewTarget[1], psiRads);
-						break;
-					case TransformMode.Rotate:
-						const pxFieldCoords = fieldToCanvas(
-							waypoints[waypointToTransformIndex].x,
-							waypoints[waypointToTransformIndex].y
-						);
-						drawRobot(pxFieldCoords.x, pxFieldCoords.y, previewTarget[0]);
-						break;
-					case TransformMode.RotateHeading:
-						break;
-				}
-			}
 			ctx.stroke();
 
 			ctx.beginPath();
 			ctx.strokeStyle = '#38bdf8';
-			ctx.lineWidth = 3;
 			ctx.lineCap = 'round';
-			if (waypointToTransformIndex !== -1 && transformMode === TransformMode.RotateHeading) {
-				const pxFieldCoords = fieldToCanvas(
-					waypoints[waypointToTransformIndex].x,
-					waypoints[waypointToTransformIndex].y
-				);
-				drawArrow(pxFieldCoords.x, pxFieldCoords.y, previewTarget[0]);
-			}
 			waypoints.forEach((waypoint, idx) => {
 				drawArrow(pxFieldCoords[idx].x, pxFieldCoords[idx].y, degreesToRadians(-waypoint.th));
 			});
 			ctx.stroke();
 		} else {
-			console.log("couldn't draw path, no ctx");
+			console.info("Couldn't draw path, no ctx");
+		}
+	}
+
+	function drawPreview(previewTarget: number[]) {
+		// update preview
+		if (waypointGroupToTransformIndex !== -1 && waypointToTransformIndex !== -1) {
+			// assuming targetValue is valid
+			ctx.beginPath();
+			let pxFieldCoords;
+			switch (transformMode) {
+				case TransformMode.Translate:
+					const psiRads = degreesToRadians(
+						-waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].psi
+					);
+					drawRobot(previewTarget[0], previewTarget[1], psiRads);
+					ctx.strokeStyle = '#f97316';
+					ctx.fillStyle = 'rgba(249, 115, 22, 0.25)';
+					ctx.fill();
+					break;
+				case TransformMode.Rotate:
+					pxFieldCoords = fieldToCanvas(
+						waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].x,
+						waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].y
+					);
+					drawRobot(pxFieldCoords.x, pxFieldCoords.y, previewTarget[0]);
+					ctx.strokeStyle = '#f97316';
+					ctx.fillStyle = 'rgba(249, 115, 22, 0.25)';
+					ctx.fill();
+					break;
+				case TransformMode.RotateHeading:
+					pxFieldCoords = fieldToCanvas(
+						waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].x,
+						waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].y
+					);
+					ctx.strokeStyle = '#38bdf8';
+					ctx.lineWidth = 3;
+					ctx.lineCap = 'round';
+					drawArrow(pxFieldCoords.x, pxFieldCoords.y, previewTarget[0]);
+					break;
+			}
+			ctx.stroke();
 		}
 	}
 
 	// Runs when component first spins up
 	onMount(() => {
 		ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-		console.log(`initialPose:`, path.initialPose);
 
 		canvas.addEventListener('dblclick', (ev: MouseEvent) => {
 			const [canvasX, canvasY] = clientToCanvasCoords(ev.clientX, ev.clientY);
 			const fieldCoords = canvasToField(canvasX, canvasY);
-			waypoints.push({
+			waypoints[waypoints.length - 1].push({
 				x: fieldCoords.x,
 				y: fieldCoords.y,
 				psi: 0,
 				th: 0
 			});
-			triggerWaypointUpdate();
+			triggerWaypointUpdate(waypoints.length - 1);
 		});
 
 		canvas.addEventListener('mousedown', (ev: MouseEvent) => {
 			const [canvasX, canvasY] = clientToCanvasCoords(ev.clientX, ev.clientY);
-			console.log(`mousedown on canvas at (${canvasX}, ${canvasY})`);
-			let targetWaypointIndex = -1;
+			console.debug(`mousedown on canvas at (${canvasX}, ${canvasY})`);
+			let targetWaypointIndex = -1,
+				targetWaypointGroupIndex = -1;
 			for (let i = 0; i < waypointBoundBoxes.length; i++) {
-				const bounds = waypointBoundBoxes[i];
-				if (
-					// in rotation circle
-					Math.sqrt(
-						Math.pow(canvasX - bounds.rotationCircle.center.x, 2) +
-							Math.pow(canvasY - bounds.rotationCircle.center.y, 2)
-					) <= bounds.rotationCircle.radius
-				) {
-					console.log(`Rotate Waypoint ${i}`);
-					targetWaypointIndex = i;
-					transformMode = TransformMode.Rotate;
-					break;
-				} else if (
-					// in heading circle
-					Math.sqrt(
-						Math.pow(canvasX - bounds.headingCircle.center.x, 2) +
-							Math.pow(canvasY - bounds.headingCircle.center.y, 2)
-					) <= bounds.headingCircle.radius
-				) {
-					console.log(`Rotate Waypoint Heading ${i}`);
-					targetWaypointIndex = i;
-					transformMode = TransformMode.RotateHeading;
-					break;
-				} else if (
-					// in translation box
-					canvasX >= bounds.translationBox.topLeft.x &&
-					canvasX <= bounds.translationBox.bottomRight.x &&
-					canvasY >= bounds.translationBox.topLeft.y &&
-					canvasY <= bounds.translationBox.bottomRight.y
-				) {
-					console.log(`Translate Waypoint ${i}`);
-					targetWaypointIndex = i;
-					transformMode = TransformMode.Translate;
-					break;
+				for (let j = 0; j < waypointBoundBoxes[i].length; j++) {
+					const bounds = waypointBoundBoxes[i][j];
+					if (
+						// in rotation circle
+						Math.sqrt(
+							Math.pow(canvasX - bounds.rotationCircle.center.x, 2) +
+								Math.pow(canvasY - bounds.rotationCircle.center.y, 2)
+						) <= bounds.rotationCircle.radius
+					) {
+						console.debug(`Rotate Waypoint ${i} ${j}`);
+						targetWaypointGroupIndex = i;
+						targetWaypointIndex = j;
+						transformMode = TransformMode.Rotate;
+						break;
+					} else if (
+						// in heading circle
+						Math.sqrt(
+							Math.pow(canvasX - bounds.headingCircle.center.x, 2) +
+								Math.pow(canvasY - bounds.headingCircle.center.y, 2)
+						) <= bounds.headingCircle.radius
+					) {
+						console.debug(`Rotate Waypoint Heading ${i} ${j}`);
+						targetWaypointGroupIndex = i;
+						targetWaypointIndex = j;
+						transformMode = TransformMode.RotateHeading;
+						break;
+					} else if (
+						// in translation box
+						canvasX >= bounds.translationBox.topLeft.x &&
+						canvasX <= bounds.translationBox.bottomRight.x &&
+						canvasY >= bounds.translationBox.topLeft.y &&
+						canvasY <= bounds.translationBox.bottomRight.y
+					) {
+						console.debug(`Translate Waypoint ${i}, ${j}`);
+						targetWaypointGroupIndex = i;
+						targetWaypointIndex = j;
+						transformMode = TransformMode.Translate;
+						break;
+					}
 				}
 			}
-			if (targetWaypointIndex === -1) console.log("Didn't find waypoint you clicked on");
+			if (targetWaypointIndex === -1) console.debug("Didn't find waypoint you clicked on");
 			waypointToTransformIndex = targetWaypointIndex;
+			waypointGroupToTransformIndex = targetWaypointGroupIndex;
 		});
 
 		canvas.addEventListener('mousemove', (ev: MouseEvent) => {
 			if (waypointToTransformIndex === -1) return;
-			const waypoint = waypoints[waypointToTransformIndex];
+			const waypoint = waypoints[waypointGroupToTransformIndex][waypointToTransformIndex];
 			const canvasCoords = clientToCanvasCoords(ev.clientX, ev.clientY);
 
 			switch (transformMode) {
@@ -305,43 +336,56 @@
 		});
 
 		canvas.addEventListener('mouseup', (ev: MouseEvent) => {
-			console.log('mouseup');
-			if (waypointToTransformIndex === -1 || !targetValue) return;
+			console.debug('mouseup on canvas');
+			if (waypointToTransformIndex === -1 || waypointGroupToTransformIndex === -1 || !targetValue)
+				return;
 			switch (transformMode) {
 				case TransformMode.Translate:
 					const newWaypointCoords = canvasToField(targetValue[0], targetValue[1]);
-					console.log(
-						`waypoint ${waypointToTransformIndex}: (${waypoints[waypointToTransformIndex].x}, ${waypoints[waypointToTransformIndex].y}) -> (${newWaypointCoords.x}, ${newWaypointCoords.y})`
+					console.debug(
+						`waypoint ${waypointGroupToTransformIndex}, ${waypointToTransformIndex}: (${waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].x}, ${waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].y}) -> (${newWaypointCoords.x}, ${newWaypointCoords.y})`
 					);
-					waypoints[waypointToTransformIndex].x = newWaypointCoords.x;
-					waypoints[waypointToTransformIndex].y = newWaypointCoords.y;
+					waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].x = roundFloat(
+						newWaypointCoords.x,
+						3
+					);
+					waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].y = roundFloat(
+						newWaypointCoords.y,
+						3
+					);
 					break;
 				case TransformMode.Rotate:
 					const newWaypointPsi = -radiansToDegrees(targetValue[0]);
-					console.log(
-						`waypoint ${waypointToTransformIndex} ψ: ${waypoints[waypointToTransformIndex].psi} -> ${newWaypointPsi}`
+					console.debug(
+						`waypoint ${waypointGroupToTransformIndex}, ${waypointToTransformIndex} ψ: ${waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].psi} -> ${newWaypointPsi}`
 					);
-					waypoints[waypointToTransformIndex].psi = newWaypointPsi;
+					waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].psi = roundFloat(
+						newWaypointPsi,
+						3
+					);
 					break;
 				case TransformMode.RotateHeading:
 					const newWaypointTh = -radiansToDegrees(targetValue[0]);
-					console.log(
-						`waypoint ${waypointToTransformIndex} θ: ${waypoints[waypointToTransformIndex].th} -> ${newWaypointTh}`
+					console.debug(
+						`waypoint ${waypointGroupToTransformIndex}, ${waypointToTransformIndex} θ: ${waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].th} -> ${newWaypointTh}`
 					);
-					waypoints[waypointToTransformIndex].th = newWaypointTh;
+					waypoints[waypointGroupToTransformIndex][waypointToTransformIndex].th = roundFloat(
+						newWaypointTh,
+						3
+					);
 					break;
 			}
 			waypointToTransformIndex = -1;
 			waypoints = waypoints;
-			triggerWaypointUpdate();
+			triggerWaypointUpdate(waypointGroupToTransformIndex);
+			waypointGroupToTransformIndex = -1;
 		});
 
 		if (ctx) {
-			console.log('drawing');
-			ctx.lineWidth = 5;
-			drawPath(path, waypoints, targetValue);
+			console.debug('Got rendering context for canvas');
+			paths = paths;
 		} else {
-			console.error('no ctx');
+			console.error('No rendering context for canvas');
 		}
 
 		waypoints = waypoints;
