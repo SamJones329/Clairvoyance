@@ -1,6 +1,11 @@
-#!/bin/env/sh
+#!/usr/bin/env bash
 
-npm install && npm run tauri build
+NPM_PKGS=$(npm list -g)
+if [[ $NPM_PKGS == *"yarn"* ]]; then
+    yarn install && yarn tauri build
+else
+    npm install -g yarn && yarn install && yarn tauri build && npm uninstall -g yarn
+fi
 
 mkdir -p bundle
 cp src-tauri/target/release/bundle/* bundle/
