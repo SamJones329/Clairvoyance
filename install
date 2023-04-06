@@ -1,13 +1,28 @@
 #!/usr/bin/env bash
 
+echo "Building Clairvoyance..."
+
 NPM_PKGS=$(npm list -g)
 if [[ $NPM_PKGS == *"yarn"* ]]; then
-    yarn install && yarn tauri build
+    echo "Yarn already installed, install dependencies..."
+    yarn install
+    echo "Building..."
+    yarn tauri build
 else
-    npm install -g yarn && yarn install && yarn tauri build && npm uninstall -g yarn
+    echo "Yarn not installed, installing..."
+    npm install -g yarn
+    echo "Installing dependencies..."
+    yarn install
+    echo "Building..."
+    yarn tauri build
+    echo "Uninstalling yarn..."
+    npm uninstall -g yarn
 fi
 
 mkdir -p bundle
 cp src-tauri/target/release/bundle/* bundle/
 
-rm -rf !("bundle")
+echo "Cleaning up..."
+$(find . ! -name "bundle" -exec rm -rf {} \;)
+
+echo "Finished building! Check the bundle folder for the executable and installer."
