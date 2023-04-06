@@ -1,4 +1,4 @@
-import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
+import { degreesToRadians, radiansToDegrees, parseAndRound } from '$lib/scripts/math';
 import { camelCaseToTitleCase, toCamelCase } from '$lib/scripts/text-manipulation';
 
 interface Pose {
@@ -59,6 +59,7 @@ interface TrajectoryContainer {
 	title: string;
 	waypoints: SwerveTrajectoryWaypoint[][];
 	paths: TrajectoryResponse[];
+	drawMask: boolean[];
 	config: TrajectoryConfig;
 }
 
@@ -97,7 +98,8 @@ function getDefaultPath(): TrajectoryContainer {
 				}
 			]
 		],
-		paths: [],
+		paths: [getDoNothingTrajectory()],
+		drawMask: [true],
 		config: getDefaultTrajectoryConfig()
 	};
 }
@@ -197,7 +199,29 @@ function pathToString(
 		}
 		output += '\n\tnull,';
 	}
-	return output.slice(0, -5) + '\n};\n';
+	return output.slice(0, -8) + '\n};\n';
+}
+
+/**
+ * Given a WPILib angle string, returns the angle in degrees
+ * @param angleStr a string containg an angle either in radians, or wrapped in a
+ * WPILib rotation2d constructor such as new Rotation2d(angleRadians),
+ * Rotation2d.fromDegrees(angleDegrees), or Rotation2d.fromRadians(angleRadians)
+ * The string can contain the mathematical operations +, -, *, /, and parentheses,
+ * as well as the constants Math.PI and fieldWidth
+ */
+function parseWpilibAngle(angleStr: string) {
+	let angle: number;
+	if (/(?:new)?Rotation2d(?:\.fromRadians)?\(/g.test(angleStr)) {
+		angleStr = angleStr.slice(angleStr.indexOf('(') + 1, -1);
+		angle = radiansToDegrees(parseAndRound(angleStr));
+	} else if (/Rotation2d\.fromDegrees/g.test(angleStr)) {
+		angleStr = angleStr.slice(angleStr.indexOf('(') + 1, -1);
+		angle = parseAndRound(angleStr);
+	} else {
+		angle = radiansToDegrees(parseAndRound(angleStr));
+	}
+	return angle;
 }
 
 /**
@@ -205,9 +229,11 @@ function pathToString(
  * @param pathCode
  */
 function stringToPaths(pathCode: string): TrajectoryContainer[] {
-	const paths = pathCode.match(
-		/\w+\s*=\s*new\s+SwerveTrajectoryWaypoint\[\]\s*\{(?:\s|\w|[-(),./])+\};/g
+	const pathCodeWithoutComments = pathCode.replace(/\/\/.*/g, '');
+	const paths = pathCodeWithoutComments.match(
+		/SwerveTrajectoryWaypoint\s*\[\s*\]\s*\w+\s*=\s*(?:new\s+SwerveTrajectoryWaypoint\[\]\s*)?\{(?:\s|\d|\w|[-+*(),./])+\};/g
 	);
+	console.log(paths);
 
 	if (!paths) return [];
 
@@ -216,47 +242,58 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
 	const points: TrajectoryContainer[] = [];
 	for (const path of paths) {
 		// remove comments
-		const pathWithoutComments = path.replace(/\/\/.*/g, '');
 
-		let title =
-			pathWithoutComments.match(/\s*\w+(?:\w|\d)?(?=\s*=)/g)?.[0].trim() ?? 'noTitleFound';
+		let title = path.match(/\s*\w+(?:\w|\d)?(?=\s*=)/g)?.[0].trim() ?? 'noTitleFound';
 		title = camelCaseToTitleCase(title);
-		const ptMatches = pathWithoutComments.matchAll(
-			/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>-?\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<orientation_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<orientation>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<heading_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<heading>-?\d*\.\d+|\d+\.?)\s*\)\s*\)|null)+/g
-		);
+		const splitPath = path.split(/(?:\s*|,)?\s*new\s*SwerveTrajectoryWaypoint\(\s*/g);
+		console.log(splitPath);
+		if (!splitPath) {
+			console.warn(`%cNo points found for path ${title}`, 'color: yellow');
+			continue;
+		}
+		const ptMatches = [];
+		for (const part of splitPath) {
+			if (part.includes('=')) continue;
+			let cleanPart = part.replace(/null|\s/g, '');
+			if (cleanPart.endsWith(')')) cleanPart = cleanPart.slice(0, -1);
+			else if (cleanPart.endsWith(')};')) cleanPart = cleanPart.slice(0, -3);
+			else if (cleanPart.endsWith('),')) cleanPart = cleanPart.slice(0, -2);
+			ptMatches.push(cleanPart.split(','));
+			if (part.includes('null')) {
+				ptMatches.push(['null']);
+			}
+		}
+		console.log(ptMatches);
+		// const ptMatches = pathWithoutComments.matchAll(
+		// 	/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>-?\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<orientation_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<orientation>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<heading_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<heading>-?\d*\.\d+|\d+\.?)\s*\)\s*\)|null)+/g
+		// );
 		const waypoints: SwerveTrajectoryWaypoint[][] = [];
 		let curPts: SwerveTrajectoryWaypoint[] = [];
-		for (const match of ptMatches) {
-			if (match[0] === 'null') {
+		for (const point of ptMatches) {
+			console.log(point);
+			if (point[0] === 'null') {
 				console.debug(`%cGot a subpath with ${curPts.length} points`, 'color: white');
 				waypoints.push(curPts);
 				curPts = [];
 				continue;
 			}
-			if (match.groups) {
-				let th = parseFloat(match.groups['heading']),
-					psi = parseFloat(match.groups['orientation']);
-				if (
-					match.groups['orientation_constructor'].search('fromRadians') > -1 ||
-					match.groups['heading_constructor'].search('new') > -1
-				) {
-					th = radiansToDegrees(th);
-					psi = radiansToDegrees(psi);
-				}
-				curPts.push({
-					x: parseFloat(match.groups['translationX']),
-					y: parseFloat(match.groups['translationY']),
-					th,
-					psi
-				});
-			} else {
-				curPts.push({
-					x: 0,
-					y: 0,
-					th: 0,
-					psi: 0
-				});
+
+			if (point.length !== 4) {
+				console.warn(`%cGot a point with ${point.length} values`, 'color: yellow');
+				continue;
 			}
+
+			const x = parseAndRound(point[0]);
+			const y = parseAndRound(point[1]);
+			const psi = parseWpilibAngle(point[2]);
+			const th = parseWpilibAngle(point[3]);
+
+			curPts.push({
+				x,
+				y,
+				th,
+				psi
+			});
 		}
 		if (curPts.length > 0) {
 			waypoints.push(curPts);
@@ -266,6 +303,7 @@ function stringToPaths(pathCode: string): TrajectoryContainer[] {
 			title,
 			waypoints,
 			paths: [],
+			drawMask: waypoints.map(() => true),
 			config: getDefaultTrajectoryConfig()
 		});
 	}

@@ -3,6 +3,7 @@
 	import { degreesToRadians, radiansToDegrees, roundFloat } from '$lib/scripts/math';
 	import type { SwerveTrajectoryWaypoint, TrajectoryResponse } from '$lib/scripts/Trajectory';
 	import { onMount } from 'svelte';
+	import { fieldLengthMeters, fieldWidthMeters } from '$lib/assets/field-data.json';
 
 	enum TransformMode {
 		Translate,
@@ -11,8 +12,6 @@
 	}
 
 	// constants
-	const fieldLengthMeters = 16.54175;
-	const fieldWidthMeters = 8.0137;
 	const robotSideLengthMeters = 0.889;
 	const canvasWidth = 1323;
 	const canvasHeight = 643;
@@ -23,6 +22,7 @@
 	// state variables
 	export let waypoints: SwerveTrajectoryWaypoint[][];
 	export let paths: TrajectoryResponse[];
+	export let drawMask: boolean[];
 	export let triggerWaypointUpdate: (pathsIndex: number) => void;
 	let canvas: HTMLCanvasElement;
 	let ctx: CanvasRenderingContext2D;
@@ -52,12 +52,38 @@
 
 	// helper functions
 	function getWaypointBoundBoxes(waypoints: SwerveTrajectoryWaypoint[]) {
-		const bounds = [];
-		for (const waypoint of waypoints) {
+		const bounds = waypoints.map((waypoint, idx) => {
+			if (!drawMask[idx])
+				return {
+					translationBox: {
+						topLeft: {
+							x: -1,
+							y: -1
+						},
+						bottomRight: {
+							x: -1,
+							y: -1
+						}
+					},
+					rotationCircle: {
+						center: {
+							x: -1,
+							y: -1
+						},
+						radius: 0
+					},
+					headingCircle: {
+						center: {
+							x: -1,
+							y: -1
+						},
+						radius: 0
+					}
+				};
 			const pxFieldCoords = fieldToCanvas(waypoint.x, waypoint.y); // should be center?
 			const psiRads = degreesToRadians(-waypoint.psi);
 			const thRads = degreesToRadians(-waypoint.th);
-			bounds.push({
+			return {
 				translationBox: {
 					topLeft: {
 						x: pxFieldCoords.x - halfRobotSideLengthPx,
@@ -82,8 +108,8 @@
 					},
 					radius: coreRadius
 				}
-			});
-		}
+			};
+		});
 		return bounds;
 	}
 
@@ -172,6 +198,7 @@
 		pathIdx: number,
 		waypoints: SwerveTrajectoryWaypoint[]
 	) {
+		if (!drawMask[pathIdx]) return;
 		if (ctx) {
 			ctx.lineWidth = 3;
 			// update path

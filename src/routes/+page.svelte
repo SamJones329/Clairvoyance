@@ -21,7 +21,12 @@
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
 	import { copyText } from '$lib/scripts/copyToClipboard';
-	import { roundFloat } from '$lib/scripts/math';
+	import {
+		roundFloat,
+		convertToRPN,
+		calculateRPNExpression,
+		parseAndRound
+	} from '$lib/scripts/math';
 
 	let getPath: (
 		waypoints: SwerveTrajectoryWaypoint[],
@@ -34,15 +39,12 @@
 	let showControls = true;
 	let selectedPath = 0;
 
-	let oldPaths = pathTables;
 	let exportModalCode = '';
 	let exportModalOpen = false;
 	let importPathTextarea: HTMLTextAreaElement;
 	let importModalOpen = false;
 	let importResultOpen = false;
 	let importResults: string[] = [];
-
-	const parseAndRound = (numStr: string) => roundFloat(parseFloat(numStr), 3);
 
 	function updatePaths(pathTableIndex: number) {
 		for (let i = 0; i < pathTables[pathTableIndex].waypoints.length; i++)
@@ -128,7 +130,7 @@
 
 				<Input
 					name="Max Acceleration"
-					type="number"
+					type="text"
 					value={pathTables[selectedPath].config.maxAcceleration}
 					onChange={(ev) => {
 						pathTables[selectedPath].config.maxAcceleration = parseAndRound(ev.currentTarget.value);
@@ -219,23 +221,12 @@
 							</colgroup>
 							<thead>
 								<tr>
-									<th class="bg-violet-300"
-										><button
-											type="button"
-											on:click={updatePathTablesAfter(
-												() =>
-													pathTables[tableIndex].waypoints[
-														pathTables[tableIndex].waypoints.length - 1
-													].push({ x: 0, y: 0, th: 0, psi: 0 }),
-												tableIndex,
-												pathTables[tableIndex].waypoints.length - 1
-											)}>+</button
-										></th
-									>
+									<th class="bg-violet-300" />
 									<th>X(m)</th>
 									<th class="bg-violet-300">Y(m)</th>
 									<th>θ(°)</th>
 									<th class="bg-violet-300">ψ(°)</th>
+									<th />
 								</tr>
 							</thead>
 							<tbody>
@@ -243,6 +234,14 @@
 									{#each waypoints as row, rowIndex}
 										<PathTableRow
 											{row}
+											toggleShowPath={rowIndex === 0
+												? () => {
+														pathTable.drawMask[waypointsIndex] =
+															!pathTable.drawMask[waypointsIndex];
+														pathTables = pathTables;
+												  }
+												: null}
+											showPathValue={pathTable.drawMask[waypointsIndex]}
 											onClickAddRow={updatePathTablesAfter(
 												() =>
 													pathTable.waypoints[waypointsIndex].splice(rowIndex, 0, {
@@ -259,7 +258,7 @@
 												tableIndex,
 												waypointsIndex
 											)}
-											updateTableRender={() => (pathTable = pathTable)}
+											updateTableRender={() => updatePath(tableIndex, waypointsIndex)}
 										/>
 									{/each}
 									{#if waypointsIndex !== pathTable.waypoints.length - 1}
@@ -284,17 +283,32 @@
 										/>
 									{/if}
 								{/each}
-								<tr>
-									<td class="bg-violet-500 hover:bg-violet-600 text-white pb-1" colspan="5">
+								<tr class="relative">
+									<td class="bg-violet-500 hover:bg-violet-600 text-white pb-1" colspan="6">
 										<button
 											class="w-full h-4"
+											type="button"
 											on:click={() => {
-												pathTable.waypoints.push([]);
-												pathTable.paths.push(getDoNothingTrajectory());
+												const newSubPath = getDefaultPath();
+												pathTable.waypoints.push(newSubPath.waypoints[0]);
+												pathTable.paths.push(newSubPath.paths[0]);
+												pathTable.drawMask.push(newSubPath.drawMask[0]);
 												pathTables = pathTables;
 											}}>Add Breakpoint</button
 										>
 									</td>
+									<button
+										type="button"
+										class="-top-1 left-0 absolute w-48 lg:w-64 h-2 hover:bg-opacity-50 hover:bg-green-500"
+										on:click={updatePathTablesAfter(
+											() =>
+												pathTables[tableIndex].waypoints[
+													pathTables[tableIndex].waypoints.length - 1
+												].push({ x: 0, y: 0, th: 0, psi: 0 }),
+											tableIndex,
+											pathTables[tableIndex].waypoints.length - 1
+										)}
+									/>
 								</tr>
 							</tbody>
 						</table>
@@ -352,6 +366,7 @@
 		<PathCanvas
 			waypoints={pathTables[selectedPath].waypoints}
 			paths={pathTables[selectedPath].paths ?? [getDoNothingTrajectory()]}
+			drawMask={pathTables[selectedPath].drawMask}
 			triggerWaypointUpdate={(pathsIndex) => updatePath(selectedPath, pathsIndex)}
 		/>
 	</div>
@@ -408,7 +423,6 @@
 				<div class="font-bold mx-auto max-w-max mt-1">
 					<Button
 						onClick={() => {
-							oldPaths = pathTables;
 							const importedPaths = stringToPaths(importPathTextarea.value);
 							importResults = importedPaths.map((path) => {
 								pathTables.push(path);
