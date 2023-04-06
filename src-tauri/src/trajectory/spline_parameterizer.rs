@@ -37,9 +37,9 @@ impl fmt::Display for MalformedSplineError {
  * @return A vector of poses and curvatures that represents various points on
  * the spline.
  */
-pub fn parameterize<const dim: usize>(spline: &Spline<dim>) -> Result<Vec<PoseWithCurvature>, MalformedSplineError> {
-    const t0: f64 = 0.0;
-    const t1: f64 = 1.0;
+pub fn parameterize<const DIM: usize>(spline: &Spline<DIM>, t_0: Option<f64>, t_1: Option<f64>) -> Result<Vec<PoseWithCurvature>, MalformedSplineError> {
+    let t0: f64 = t_0.unwrap_or(0.0);
+    let t1: f64 = t_1.unwrap_or(1.0);
 
     let mut spline_points = Vec::<PoseWithCurvature>::new();
 
@@ -51,7 +51,7 @@ pub fn parameterize<const dim: usize>(spline: &Spline<dim>) -> Result<Vec<PoseWi
     // std::stack<StackContents> stack;
     // stack.emplace(StackContents{t0, t1});
     let mut stack = Vec::<StackContents>::new();
-    stack.push(StackContents { t0, t1 });
+    stack.push(StackContents { t0, t1});
 
     let mut current: StackContents;
     let mut start: PoseWithCurvature;

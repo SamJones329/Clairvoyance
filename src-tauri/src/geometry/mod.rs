@@ -17,7 +17,7 @@ impl Translation2d {
         Self { x: vector[0], y: vector[1] }
     }
     pub const fn default() -> Self {
-        Translation2d { x: 0., y: 0. }
+        Translation2d::new(0., 0.)
     }
     pub fn rotate_by(self, other: Rotation2d) -> Self {
         Self {

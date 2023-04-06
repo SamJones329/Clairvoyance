@@ -25,7 +25,7 @@
 //     units::meters_per_second_t maxVelocity,
 //     units::meters_per_second_squared_t maxAcceleration, bool reversed);
 
-use std::{fmt, f32::INFINITY};
+use std::fmt;
 
 use super::{Trajectory, spline_parameterizer::PoseWithCurvature, TrajectoryConstraint, TrajectoryState};
 

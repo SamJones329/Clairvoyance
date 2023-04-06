@@ -3,12 +3,12 @@
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
-    "devPath": "http://localhost:5173/clairvoyance",
+    "devPath": "http://localhost:5173/",
     "distDir": "../build"
   },
   "package": {
     "productName": "Clairvoyance",
-    "version": "0.1.6"
+    "version": "0.1.7"
   },
   "tauri": {
     "allowlist": {

@@ -52,15 +52,15 @@ impl TrajectoryConfig {
 }
 
 #[derive(Debug)]
-pub struct ControlVector<const size: usize> {
-    x: [f64; size],
-    y: [f64; size]
+pub struct ControlVector<const SIZE: usize> {
+    x: [f64; SIZE],
+    y: [f64; SIZE]
 }
-impl<const size: usize> ControlVector<size> {
-    fn x(&self) -> &[f64; size] {
+impl<const SIZE: usize> ControlVector<SIZE> {
+    fn x(&self) -> &[f64; SIZE] {
         &self.x
     }
-    fn y(&self) -> &[f64; size] {
+    fn y(&self) -> &[f64; SIZE] {
         &self.y
     }
 }
@@ -79,26 +79,6 @@ pub fn control_vector_from_arrays(init_vector: [f64; 3], final_vector: [f64; 3])
     arr1(&[init_vector[0], init_vector[1], init_vector[2], final_vector[0], final_vector[1], final_vector[2]])
 }
 
-/**
- * Converts a Translation2d into a vector that is compatible with Eigen.
- *
- * @param translation The Translation2d to convert.
- * @return The vector.
- */
-fn to_vector(translation: &Translation2d) -> [f64; 2] {
-    [translation.x().clone(), translation.y().clone()]
-}
-
-/**
- * Converts an Eigen vector into a Translation2d.
- *
- * @param vector The vector to convert (length=2).
- * @return The Translation2d.
- */
-fn from_vector(vector: &Array1<f64>) -> Translation2d {
-    Translation2d::new(vector[0], vector[1])
-}
-
 fn make_hermite_basis() -> Array2<f64> {
     arr2(
         &[[-06.0, -03.0, -00.5,  06.0, -03.0,  00.5],
@@ -110,10 +90,10 @@ fn make_hermite_basis() -> Array2<f64> {
     )
 }
 
-pub struct Spline<const degree: usize> {
+pub struct Spline<const DEGREE: usize> {
     coefficients: Array2<f64>
 }
-impl<const degree: usize> Spline<degree> {
+impl<const DEGREE: usize> Spline<DEGREE> {
     /**
      * Gets the pose and curvature at some point t on the spline.
      *
@@ -121,12 +101,12 @@ impl<const degree: usize> Spline<degree> {
      * @return The pose and curvature at that point.
      */
     pub fn get_point(&self, t: f64) -> PoseWithCurvature {
-        let mut polynomial_bases = Array1::<f64>::zeros(degree+1);
+        let mut polynomial_bases = Array1::<f64>::zeros(DEGREE+1);
 
         // Populate the polynomial bases
         let mut i = 0;
-        while i <= degree {
-            polynomial_bases[i] = t.powf((degree - i) as f64);
+        while i <= DEGREE {
+            polynomial_bases[i] = t.powf((DEGREE - i) as f64);
             i += 1;
         }
 
@@ -142,10 +122,10 @@ impl<const degree: usize> Spline<degree> {
         // If t = 0, all other terms in the equation cancel out to zero. We can use
         // the last x^0 term in the equation.
         if t == 0.0 {
-            dx = self.coefficients[[2, degree - 1]];
-            dy = self.coefficients[[3, degree - 1]];
-            ddx = self.coefficients[[4, degree - 2]];
-            ddy = self.coefficients[[5, degree - 2]];
+            dx = self.coefficients[[2, DEGREE - 1]];
+            dy = self.coefficients[[3, DEGREE - 1]];
+            ddx = self.coefficients[[4, DEGREE - 2]];
+            ddy = self.coefficients[[5, DEGREE - 2]];
         } else {
             // Divide out t for first derivative.
             dx = combined[2] / t;
@@ -221,11 +201,11 @@ pub struct TrajectoryState {
     pub pose: Pose2d,
     pub curvature: f64
 }
-impl TrajectoryState {
-    pub fn interpolate(self, end: &Self, i: f64) -> Self {
-        todo!()
-    }
-}
+// impl TrajectoryState { TODO
+//     pub fn interpolate(self, end: &Self, i: f64) -> Self {
+//         todo!()
+//     }
+// }
 
 #[derive(Serialize, Debug)]
 pub struct Trajectory {

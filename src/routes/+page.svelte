@@ -86,7 +86,13 @@
 			getPath = (waypoints, config) =>
 				invoke<TrajectoryResponse>('generate_trajectory_tauri', {
 					waypoints: waypointsToPoses(waypoints),
-					config
+					config: {
+						max_acceleration: config.maxAcceleration,
+						max_velocity: config.maxVelocity,
+						start_velocity: config.startVelocity,
+						end_velocity: config.endVelocity,
+						reversed: config.reversed
+					}
 				});
 		}
 		const val = getPath(pathTables[0].waypoints[0], pathTables[0].config);
@@ -283,10 +289,10 @@
 										/>
 									{/if}
 								{/each}
-								<tr class="relative">
+								<tr class="relative top-0 left-0">
 									<td class="bg-violet-500 hover:bg-violet-600 text-white pb-1" colspan="6">
 										<button
-											class="w-full h-4"
+											class="w-full h-full"
 											type="button"
 											on:click={() => {
 												const newSubPath = getDefaultPath();
@@ -297,18 +303,20 @@
 											}}>Add Breakpoint</button
 										>
 									</td>
-									<button
-										type="button"
-										class="-top-1 left-0 absolute w-48 lg:w-64 h-2 hover:bg-opacity-50 hover:bg-green-500"
-										on:click={updatePathTablesAfter(
-											() =>
-												pathTables[tableIndex].waypoints[
-													pathTables[tableIndex].waypoints.length - 1
-												].push({ x: 0, y: 0, th: 0, psi: 0 }),
-											tableIndex,
-											pathTables[tableIndex].waypoints.length - 1
-										)}
-									/>
+									<div class="relative top-0 left-0">
+										<button
+											type="button"
+											class="-top-1 right-0 absolute w-48 lg:w-64 h-2 hover:bg-opacity-50 hover:bg-green-500"
+											on:click={updatePathTablesAfter(
+												() =>
+													pathTables[tableIndex].waypoints[
+														pathTables[tableIndex].waypoints.length - 1
+													].push({ x: 0, y: 0, th: 0, psi: 0 }),
+												tableIndex,
+												pathTables[tableIndex].waypoints.length - 1
+											)}
+										/>
+									</div>
 								</tr>
 							</tbody>
 						</table>

@@ -31,7 +31,7 @@
 	}
 </script>
 
-<tr class="relative">
+<tr class="relative top-0 left-0">
 	<td class="bg-violet-300 pb-1">
 		<button type="button" on:click={onClickRemoveRow}>-</button>
 	</td>
@@ -67,9 +67,11 @@
 	{:else}
 		<td />
 	{/if}
-	<button
-		type="button"
-		class="-top-1 left-0 absolute w-48 lg:w-64 h-2 hover:bg-opacity-50 hover:bg-green-500"
-		on:click={onClickAddRow}
-	/>
+	<div class="relative top-0 left-0">
+		<button
+			type="button"
+			class="-top-1 right-0 absolute w-48 lg:w-64 h-2 hover:bg-opacity-50 hover:bg-green-500"
+			on:click={onClickAddRow}
+		/>
+	</div>
 </tr>

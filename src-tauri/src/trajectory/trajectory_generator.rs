@@ -1,5 +1,3 @@
-use std::collections::VecDeque;
-
 use crate::geometry::{Pose2d, Translation2d, Rotation2d, Transform2d};
 use crate::trajectory::TrajectoryConfig;
 
@@ -17,7 +15,7 @@ pub fn spline_points_from_splines<const DEGREE: usize>(splines: &Vec<Spline<DEGR
     // Iterate through the vector and parameterize each spline, adding the
     // parameterized points to the final vector.
     for spline in splines {
-        let points = spline_parameterizer::parameterize(&spline);
+        let points = spline_parameterizer::parameterize(&spline, None, None);
 
         // Append the array of poses to the vector. We are removing the first
         // point because it's a duplicate of the last point from the previous

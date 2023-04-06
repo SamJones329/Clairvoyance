@@ -4,8 +4,7 @@
 )]
 
 use geometry::Pose2d;
-use serde::ser::SerializeStruct;
-use trajectory::{Trajectory, trajectory_generator::generate_trajectory, TrajectoryConfig, TrajectoryState, TrajectoryConfigNoConstraints};
+use trajectory::{Trajectory, trajectory_generator::generate_trajectory, TrajectoryConfigNoConstraints};
 
 mod geometry;
 mod trajectory;
@@ -16,49 +15,6 @@ fn test_for_tauri() -> bool {
   return true;
 }
 
-// impl serde::Serialize for Pose2d {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer {
-//         let mut obj = serializer.serialize_struct("pose", 3)?;
-//         obj.serialize_field("x", &self.translation().x());
-//         obj.serialize_field("y", &self.translation().y());
-//         obj.serialize_field("th", &self.rotation().radians());
-//         obj.end()
-//     }
-// }
-// impl serde::Serialize for TrajectoryState {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer {
-//         let mut obj = serializer.serialize_struct("state", 5)?;
-//         obj.serialize_field("time", &self.t);
-//         obj.serialize_field("velocity", &self.velocity);
-//         obj.serialize_field("acceleration", &self.acceleration);
-//         obj.serialize_field("pose", &self.pose);
-//         obj.serialize_field("curvature", &self.curvature);
-//         obj.end()
-//     }
-// }
-// impl serde::Serialize for Trajectory {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer {
-//       let mut obj = serializer.serialize_struct("trajectory", 2)?;
-//       obj.serialize_field("states", self.states());
-//       obj.serialize_field("totalTimeSeconds", self.total_time());
-//       obj.serialize_field("initialPose", self.init_pose());
-
-//       obj.end()
-//     }
-// }
-// impl serde::Deserialize for Pose2d {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: serde::Deserializer<'de> {
-//         deserializer.deserialize_struct("pose", fields, visitor)
-//     }
-// }
 #[tauri::command]
 fn generate_trajectory_tauri(waypoints: Vec<Pose2d>, config: TrajectoryConfigNoConstraints) -> Trajectory {
   println!("Generating trajectory with the following parameters:\n\tPath Type: Quintic Hermite Splines\n\tnumPts: {}\n\tMax V(m/s): {}\n\tMax A(m/s/s): {}\n\tStart V(m/s): {}\n\tEnd V(m/s): {}\n\tReversed?: {}", waypoints.len(), config.max_velocity, config.max_acceleration, config.start_velocity, config.end_velocity, config.reversed);

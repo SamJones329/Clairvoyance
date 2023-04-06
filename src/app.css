@@ -18,11 +18,6 @@ input::-webkit-inner-spin-button {
   margin: 0;
 }
 
-/* Firefox */
-input[type=number] {
-  -moz-appearance: textfield;
-}
-
 .h-screen-minus-title {
   height: calc(100vh - var(--title-height));
 }
@@ -40,8 +35,9 @@ input[type=number] {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  scrollbar-gutter: none;
 }
 
 .no-scrollbar::-webkit-scrollbar {
-  width: 0 !important;
+  display: none;
 }
