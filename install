@@ -1,0 +1,8 @@
+#!/bin/env/sh
+
+npm install && npm run tauri build
+
+mkdir -p bundle
+cp src-tauri/target/release/bundle/* bundle/
+
+rm -rf !("bundle")
