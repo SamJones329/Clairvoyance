@@ -2,6 +2,24 @@
 
 echo "Building Clairvoyance..."
 
+if which node > /dev/null/ 
+then
+    node -v
+    echo "Found Node.js, continuing with install..."
+else
+    echo "Error: Node.js must be installed to build Clairvoyance. Please install and try again."
+    exit 1
+fi
+
+if which rustc > /dev/null/ 
+then
+    rustc --version
+    echo "Found Rust compiler, continuing with install..."
+else
+    echo "Error: Rust compiler (rustc) must be installed to build Clairvoyance. Please install and try again."
+    exit 1
+fi
+
 NPM_PKGS=$(npm list -g)
 if [[ $NPM_PKGS == *"yarn"* ]]; then
     echo "Yarn already installed, install dependencies..."
@@ -23,6 +41,6 @@ mkdir -p bundle
 cp src-tauri/target/release/bundle/* bundle/
 
 echo "Cleaning up..."
-$(find . ! -name "bundle" -exec rm -rf {} \;)
+find . ! -name "bundle" -exec rm -rf {} \; > /dev/null/ 2>&1
 
 echo "Finished building! Check the bundle folder for the executable and installer."
