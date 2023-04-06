@@ -2,7 +2,7 @@
 
 echo "Building Clairvoyance..."
 
-if which node > /dev/null/ 
+if which node > /dev/null
 then
     node -v
     echo "Found Node.js, continuing with install..."
@@ -11,7 +11,7 @@ else
     exit 1
 fi
 
-if which rustc > /dev/null/ 
+if which rustc > /dev/null
 then
     rustc --version
     echo "Found Rust compiler, continuing with install..."
@@ -38,9 +38,9 @@ else
 fi
 
 mkdir -p bundle
-cp src-tauri/target/release/bundle/* bundle/
+cp -r src-tauri/target/release/bundle/ bundle/
 
 echo "Cleaning up..."
-find . ! -name "bundle" -exec rm -rf {} \; > /dev/null/ 2>&1
+find . ! -name "bundle" -exec rm -rf {} \; > /dev/null 2>&1
 
 echo "Finished building! Check the bundle folder for the executable and installer."
