@@ -1,5 +1,5 @@
 <script lang="ts">
-	import fieldImg from '$lib/assets/field-image.png';
+	import fieldImg from '$lib/assets/2023-Field-Charged-Up.svg';
 	import { degreesToRadians, radiansToDegrees, roundFloat } from '$lib/scripts/math';
 	import type { SwerveTrajectoryWaypoint, TrajectoryResponse } from '$lib/scripts/Trajectory';
 	import { onMount } from 'svelte';
