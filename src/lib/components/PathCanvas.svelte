@@ -47,13 +47,13 @@
 	$: updatePathDrawings(ctx, paths, targetValue);
 
 	function getAllWaypointBoundBoxes(allWaypoints: SwerveTrajectoryWaypoint[][]) {
-		return allWaypoints.map((waypoints) => getWaypointBoundBoxes(waypoints));
+		return allWaypoints.map((waypoints, idx) => getWaypointBoundBoxesForPath(waypoints, idx));
 	}
 
 	// helper functions
-	function getWaypointBoundBoxes(waypoints: SwerveTrajectoryWaypoint[]) {
+	function getWaypointBoundBoxesForPath(waypoints: SwerveTrajectoryWaypoint[], pathIdx: number) {
 		const bounds = waypoints.map((waypoint, idx) => {
-			if (!drawMask[idx])
+			if (!drawMask[pathIdx])
 				return {
 					translationBox: {
 						topLeft: {
@@ -300,6 +300,7 @@
 			for (let i = 0; i < waypointBoundBoxes.length; i++) {
 				for (let j = 0; j < waypointBoundBoxes[i].length; j++) {
 					const bounds = waypointBoundBoxes[i][j];
+					console.log(bounds);
 					if (
 						// in rotation circle
 						Math.sqrt(
