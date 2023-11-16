@@ -203,13 +203,14 @@
 			ctx.lineWidth = 3;
 			// update path
 			// ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+			ctx.moveTo(waypoints[0].x, waypoints[0].y);
 			ctx.beginPath();
 			ctx.strokeStyle = '#2bff79';
 			let count = 0;
 			for (const state of path.states) {
 				count++;
 				const fieldCoord = fieldToCanvas(state.pose.translation.x, state.pose.translation.y);
-				ctx.arc(fieldCoord.x, fieldCoord.y, 2, 0, 2 * Math.PI);
+				ctx.lineTo(fieldCoord.x, fieldCoord.y);
 			}
 			ctx.stroke();
 			ctx.beginPath();
