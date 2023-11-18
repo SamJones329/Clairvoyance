@@ -17,17 +17,12 @@ function roundFloat(num: number, decimalPlaces: number) {
 }
 
 const parseAndRound = (numStr: string) => {
-	if (numStr === 'Math.PI') console.log(numStr);
 	const numStrNoVar = numStr
 		.replace(/(?:[Mm]ath\.)?(?:PI|pi)/g, PI_STR)
 		.replace('fieldWidth', FIELD_WIDTH_STR);
-	if (numStr === 'Math.PI') console.log(numStrNoVar);
 	const rpnNumStr = convertToRPN(numStrNoVar);
-	if (numStr === 'Math.PI') console.log(rpnNumStr);
 	const numResult = calculateRPNExpression(rpnNumStr);
-	if (numStr === 'Math.PI') console.log(numResult, typeof numResult);
 	const num = typeof numResult === 'number' ? numResult : parseFloat(numResult ?? '0');
-	if (numStr === 'Math.PI') console.log(num);
 	return roundFloat(num, 3);
 };
 

@@ -177,11 +177,8 @@ async function fetchPath(
  * @param name
  * @returns
  */
-function pathToString(
-	points: SwerveTrajectoryWaypoint[][],
-	config: TrajectoryConfig,
-	name?: string
-) {
+function pathToString(trajectory: TrajectoryContainer) {
+	const { waypoints: points, config, title: name } = trajectory;
 	const camelCaseName = toCamelCase(name ?? 'default');
 	let output = `public static final TrajectoryConfig ${camelCaseName}Config = new TrajectoryConfig(\n\t${
 		config.maxVelocity

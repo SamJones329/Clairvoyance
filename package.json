@@ -44,6 +44,7 @@
 	"type": "module",
 	"dependencies": {
 		"@fortawesome/fontawesome-free": "^6.3.0",
-		"paper": "^0.12.17"
+		"paper": "^0.12.17",
+		"path2d-polyfill": "^2.0.1"
 	}
 }

@@ -4,14 +4,11 @@
 	import Input from '$lib/components/Input.svelte';
 	import { invoke } from '@tauri-apps/api/tauri';
 	import Button from '$lib/components/Button.svelte';
-	import x from '$lib/assets/x.svg';
 	import PathTableRow from '$lib/components/PathTableRow.svelte';
 	import PathTableBreakRow from '$lib/components/PathTableBreakRow.svelte';
 	import {
 		fetchPath,
 		getDefaultPath,
-		pathToString,
-		stringToPaths,
 		waypointsToPoses,
 		getDoNothingTrajectory,
 		type SwerveTrajectoryWaypoint,
@@ -20,13 +17,9 @@
 	} from '$lib/scripts/Trajectory';
 	import PathCanvas from '$lib/components/PathCanvas.svelte';
 	import { onMount } from 'svelte';
-	import { copyText } from '$lib/scripts/copyToClipboard';
-	import {
-		roundFloat,
-		convertToRPN,
-		calculateRPNExpression,
-		parseAndRound
-	} from '$lib/scripts/math';
+	import { parseAndRound } from '$lib/scripts/math';
+	import CodeImportModal from './CodeImportModal.svelte';
+	import CodeExportModal from './CodeExportModal.svelte';
 
 	let getPath: (
 		waypoints: SwerveTrajectoryWaypoint[],
@@ -39,12 +32,9 @@
 	let showControls = true;
 	let selectedPath = 0;
 
-	let exportModalCode = '';
 	let exportModalOpen = false;
-	let importPathTextarea: HTMLTextAreaElement;
 	let importModalOpen = false;
-	let importResultOpen = false;
-	let importResults: string[] = [];
+	let exportAllPaths = false;
 
 	function updatePaths(pathTableIndex: number) {
 		for (let i = 0; i < pathTables[pathTableIndex].waypoints.length; i++)
@@ -332,27 +322,21 @@
 					>
 				{/if}
 				<Button
+					fixedWidth
 					onClick={() => {
-						exportModalCode = pathToString(
-							pathTables[selectedPath].waypoints,
-							pathTables[selectedPath].config,
-							pathTables[selectedPath].title
-						);
+						exportAllPaths = false;
 						exportModalOpen = true;
 					}}>Export Path</Button
 				>
 				<Button
+					fixedWidth
 					onClick={() => {
-						let newimportModalCode = '';
-						for (const path of pathTables) {
-							newimportModalCode += pathToString(path.waypoints, path.config, path.title) + '\n';
-						}
-						exportModalCode = newimportModalCode;
+						exportAllPaths = true;
 						exportModalOpen = true;
 					}}>Export All Paths</Button
 				>
 
-				<Button onClick={() => (importModalOpen = true)}>Import</Button>
+				<Button fixedWidth onClick={() => (importModalOpen = true)}>Import</Button>
 			</form>
 		</div>
 	{/if}
@@ -363,9 +347,9 @@
 			on:click={() => (showControls = !showControls)}
 		>
 			{#if showControls}
-				<FontAwesomeIcon icon={['fas', 'angles-left']} />
+				<FontAwesomeIcon icon="fa-solid fa-angles-left" />
 			{:else}
-				<FontAwesomeIcon icon={['fas', 'angles-right']} />
+				<FontAwesomeIcon icon="fa-solid fa-angles-right" />
 			{/if}
 		</button>
 	</div>
@@ -380,115 +364,14 @@
 	</div>
 </div>
 
-{#if exportModalOpen}
-	<div class="absolute top-0 left-0 w-screen h-screen bg-opacity-75 bg-black z-40">
-		<div class="relative w-[50rem] h-[40rem] mx-auto mt-24 bg-violet-800 rounded-xl">
-			<div class="mx-auto max-w-max">
-				<div class="flex text-white">
-					<h2 class="max-w-max pt-8 pb-4 text-bold text-xl">Exported Path Code</h2>
-					<button type="button" on:click={() => copyText(exportModalCode)} class="mt-8 mb-4 mx-4"
-						><div><i class="fa-regular fa-copy" /></div></button
-					>
-				</div>
-				<div
-					class="bg-white w-[46rem] h-[32rem] text-black whitespace-pre-wrap rounded-lg px-8 py-4 overflow-scroll"
-				>
-					<p>
-						{exportModalCode}
-					</p>
-				</div>
-			</div>
-			<button
-				type="button"
-				class="w-4 h-4 absolute top-4 right-4"
-				on:click={() => (exportModalOpen = false)}><img src={x} alt="" srcset="" /></button
-			>
-		</div>
-	</div>
-{/if}
+<CodeExportModal
+	open={exportModalOpen}
+	paths={exportAllPaths ? pathTables : [pathTables[selectedPath]]}
+/>
 
-{#if importModalOpen}
-	<div class="absolute top-0 left-0 w-screen h-screen bg-opacity-75 bg-black z-40">
-		<div class="relative w-[50rem] h-[40rem] mx-auto mt-24 bg-violet-800 rounded-xl">
-			<div class="mx-auto max-w-max">
-				<div class="flex text-white">
-					<h2 class="max-w-max pt-8 pb-4 text-bold text-xl">Import Path Code</h2>
-					<span class="text-neutral-400 pl-2 pt-[2.25rem]">Units: meters, radians</span>
-				</div>
-				<div
-					class="bg-white w-[46rem] h-[30rem] text-black whitespace-pre-wrap rounded-lg px-8 py-4 overflow-scroll"
-				>
-					<textarea
-						placeholder="Enter code here..."
-						class="w-full h-full p-1"
-						name="import"
-						id="import"
-						cols="30"
-						rows="10"
-						bind:this={importPathTextarea}
-					/>
-				</div>
-				<div class="font-bold mx-auto max-w-max mt-1">
-					<Button
-						onClick={() => {
-							const importedPaths = stringToPaths(importPathTextarea.value);
-							importResults = importedPaths.map((path) => {
-								pathTables.push(path);
-								return path.title;
-							});
-							importResultOpen = true;
-						}}
-						invert={true}>Import</Button
-					>
-				</div>
-			</div>
-			<button
-				type="button"
-				class="w-4 h-4 absolute top-4 right-4"
-				on:click={() => (importModalOpen = false)}><img src={x} alt="" srcset="" /></button
-			>
-		</div>
-	</div>
-{/if}
-
-{#if importResultOpen}
-	<div class="absolute top-0 left-0 w-screen h-screen bg-opacity-75 bg-black z-40">
-		<div class="relative w-64 h-48 mx-auto mt-24 bg-zinc-600 rounded-xl">
-			<div class="mx-auto max-w-max p-4 flex flex-col h-full justify-between">
-				<div>
-					<h3 class="text-lg font-bold">
-						{importResults.length ? 'Import Successful' : 'Import Failed'}
-					</h3>
-					<p>
-						{`Found ${importResults.length} paths${
-							importResults.length ? `: ${importResults}` : ''
-						}`}
-					</p>
-				</div>
-				<div class="flex">
-					<Button
-						width="w-20"
-						widthLg="w-20"
-						height="h-12"
-						onClick={() => {
-							importResultOpen = false;
-							importModalOpen = false;
-							importPathTextarea.value = '';
-							for (let i = 1; i <= importResults.length; i++) updatePaths(pathTables.length - i);
-						}}>{importResults.length ? 'Confirm' : 'Exit'}</Button
-					>
-					<Button
-						width="w-20"
-						widthLg="w-20"
-						height="h-12"
-						invert={true}
-						onClick={() => {
-							importResults.forEach(() => pathTables.pop());
-							importResultOpen = false;
-						}}>Cancel</Button
-					>
-				</div>
-			</div>
-		</div>
-	</div>
-{/if}
+<CodeImportModal
+	open={importModalOpen}
+	onImport={(newPaths) => {
+		pathTables = pathTables.concat(newPaths);
+	}}
+/>
