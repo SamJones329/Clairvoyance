@@ -152,13 +152,6 @@ function getDefaultAuto(): Auto {
 						th: 0,
 						psi: 0,
 						hidden: false
-					},
-					{
-						x: 2,
-						y: 2,
-						th: 0,
-						psi: 0,
-						hidden: false
 					}
 				],
 				path: getDoNothingPath(),

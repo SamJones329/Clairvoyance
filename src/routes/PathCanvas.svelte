@@ -4,7 +4,6 @@
 	import { AutoCanvas, canvasHeight, canvasWidth } from '$lib/scripts/canvas';
 	import { getPath, type Auto, type Waypoint } from '$lib/scripts/Trajectory';
 	import type { Writable } from 'svelte/store';
-	import { radiansToDegrees } from '$lib/scripts/math';
 
 	enum TransformMode {
 		Translate,
@@ -48,6 +47,7 @@
 
 	// Runs when component first spins up
 	onMount(() => {
+		updateAutoStore();
 		autoCanvas = new AutoCanvas(canvas);
 
 		canvas.addEventListener('dblclick', (ev: MouseEvent) => {
@@ -66,37 +66,33 @@
 		canvas.addEventListener('mousedown', (ev: MouseEvent) => {
 			const [canvasX, canvasY] = autoCanvas.clientToCanvasCoords(ev.clientX, ev.clientY);
 			console.debug(`mousedown on canvas at (${canvasX}, ${canvasY})`);
-			let targetPathIndex = -1,
-				targetWaypointIndex = -1;
 			for (let i = 0; i < waypointBoundBoxes.length; i++) {
 				const boxesForPath = waypointBoundBoxes[i];
 				for (let j = 0; j < boxesForPath.length; j++) {
 					const bounds = boxesForPath[j];
 					if (autoCanvas.isPointInCircle(canvasX, canvasY, bounds.rotationCircle)) {
 						console.debug(`Rotate Waypoint ${i}`);
-						targetPathIndex = i;
-						targetWaypointIndex = j;
+						pathToTransformIndex = i;
+						waypointToTransformIndex = j;
 						transformMode = TransformMode.Rotate;
 						break;
 					} else if (autoCanvas.isPointInCircle(canvasX, canvasY, bounds.headingCircle)) {
 						console.debug(`Rotate Waypoint Heading ${i}`);
-						targetPathIndex = i;
-						targetWaypointIndex = j;
+						pathToTransformIndex = i;
+						waypointToTransformIndex = j;
 						transformMode = TransformMode.RotateHeading;
 						break;
 					} else if (autoCanvas.isPointInBox(canvasX, canvasY, bounds.translationBox)) {
 						console.debug(`Translate Waypoint ${i}`);
-						targetPathIndex = i;
-						targetWaypointIndex = j;
+						pathToTransformIndex = i;
+						waypointToTransformIndex = j;
 						transformMode = TransformMode.Translate;
 						break;
 					}
 				}
 			}
-			if (targetPathIndex === -1 || targetWaypointIndex === -1)
+			if (pathToTransformIndex === -1 || waypointToTransformIndex === -1)
 				console.debug("Didn't find waypoint you clicked on");
-			pathToTransformIndex = targetPathIndex;
-			waypointToTransformIndex = targetWaypointIndex;
 		});
 
 		canvas.addEventListener('mousemove', (ev: MouseEvent) => {
