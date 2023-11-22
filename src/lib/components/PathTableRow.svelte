@@ -1,14 +1,11 @@
 <script lang="ts">
-	import type { SwerveTrajectoryWaypoint } from '$lib/scripts/Trajectory';
+	import type { Waypoint } from '$lib/scripts/Trajectory';
 	import { parseAndRound } from '$lib/scripts/math';
-	import ToggleButton from '$lib/components/ToggleButton.svelte';
 
-	export let row: SwerveTrajectoryWaypoint;
+	export let row: Waypoint;
 	export let onClickRemoveRow: () => void;
 	export let onClickAddRow: () => void;
 	export let updateTableRender: () => void;
-	export let toggleShowPath: null | (() => void) = null;
-	export let showPathValue: null | boolean = null;
 
 	function onChangeX(this: HTMLInputElement, ev: Event) {
 		row.x = parseAndRound((ev.target as HTMLInputElement).value);
@@ -58,15 +55,6 @@
 		/></td
 	>
 
-	{#if toggleShowPath}
-		<td class="pb-1 relative w-[1.375rem]">
-			<div class="absolute top-1">
-				<ToggleButton value={showPathValue ?? false} onClick={toggleShowPath} />
-			</div>
-		</td>
-	{:else}
-		<td />
-	{/if}
 	<div class="relative top-0 left-0">
 		<button
 			type="button"

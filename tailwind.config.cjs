@@ -14,11 +14,8 @@ module.exports = {
         danger: '#F87171',
         success: '#34D399',
         warning: '#FBBF24',
-
-        // background colors
-        back: "#18181b", // zinc-900
-        mid: "#27272a", // zinc-800
-        top: "#3f3f46", // zinc-700
+      
+        // use zinc for background colors
 
         // text colors
         darktext: "#0f172a", // slate-800
