@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PathsDrawer from './PathsDrawer.svelte';
 	import PathCanvas from './PathCanvas.svelte';
+	import DetailsPopup from './DetailsPopup.svelte';
 </script>
 
 <div class="bg-violet-900 text-white flex items-center justify-between h-10 lg:h-20">
@@ -14,4 +15,6 @@
 	<div class="overflow-scroll max-h-screen-minus-title p-8">
 		<PathCanvas />
 	</div>
+
+	<DetailsPopup />
 </div>

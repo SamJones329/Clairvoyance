@@ -2,6 +2,40 @@ import { degreesToRadians, radiansToDegrees, parseAndRound } from '$lib/scripts/
 import { camelCaseToTitleCase, toCamelCase } from '$lib/scripts/text-manipulation';
 import { invoke } from '@tauri-apps/api/tauri';
 
+enum DetailType {
+	RobotConfig,
+	AutoConfig,
+	PathConfig,
+	Waypoint
+}
+
+interface BaseDetail {
+	type: DetailType;
+	value: RobotConfig | AutoConfig | PathConfig | Waypoint;
+}
+
+type RobotConfigDetail = BaseDetail & {
+	type: DetailType.RobotConfig;
+	value: RobotConfig;
+};
+
+type AutoConfigDetail = BaseDetail & {
+	type: DetailType.AutoConfig;
+	value: AutoConfig;
+};
+
+type PathConfigDetail = BaseDetail & {
+	type: DetailType.PathConfig;
+	value: PathConfig;
+};
+
+type WaypointDetail = BaseDetail & {
+	type: DetailType.Waypoint;
+	value: Waypoint;
+};
+
+type Detail = RobotConfigDetail | AutoConfigDetail | PathConfigDetail | WaypointDetail;
+
 interface RobotConfig {
 	/** Width of robot in meters */
 	width: number;
@@ -123,6 +157,15 @@ async function initTauriTrajectoryApi() {
 }
 
 const onTauri = () => ON_TAURI;
+
+function getDefaultRobotConfig(): RobotConfig {
+	return {
+		width: 0.762, // 30 in
+		length: 0.762, // 30 in
+		trackWidth: 0.6096, // 24 in
+		wheelbase: 0.6096 // 24 in
+	};
+}
 
 function getDoNothingPath(): Path {
 	return {
@@ -371,6 +414,7 @@ export {
 	getPath,
 	pathToString,
 	stringToPaths,
+	getDefaultRobotConfig,
 	getDefaultAuto,
 	getDefaultAutoConfig,
 	getDoNothingPath,
@@ -381,5 +425,12 @@ export {
 	type Waypoint,
 	type Auto,
 	type AutoConfig,
-	type RobotConfig
+	type RobotConfig,
+	type PathConfig,
+	DetailType,
+	type Detail,
+	type RobotConfigDetail,
+	type AutoConfigDetail,
+	type PathConfigDetail,
+	type WaypointDetail
 };

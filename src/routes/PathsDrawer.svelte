@@ -2,19 +2,81 @@
 	import DrawerAddButton from '$lib/components/DrawerAddButton.svelte';
 	import DrawerHeading from '$lib/components/DrawerHeading.svelte';
 	import DrawerRow from '$lib/components/DrawerRow.svelte';
-	import { getDefaultAuto, type Auto, getPath } from '$lib/scripts/Trajectory';
+	import {
+		getDefaultAuto,
+		type Auto,
+		type Waypoint,
+		type RobotConfig,
+		getDefaultRobotConfig,
+		DetailType,
+		type Detail,
+		type AutoConfig,
+		type PathConfig
+	} from '$lib/scripts/Trajectory';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import { getContext } from 'svelte';
 	import type { Writable } from 'svelte/store';
 
+	let robot = getDefaultRobotConfig();
 	let autos: Auto[] = [getDefaultAuto()];
 	let selectedAuto = 0;
 	let open = true;
 	let autoStore = getContext<Writable<Auto>>('auto');
+	let detailsStore = getContext<Writable<Detail>>('details');
+	let detail: Detail;
+	let selectedDetail: [number, number] = [0, 0];
 
 	$: autoStore.set(autos[selectedAuto]);
 	autoStore.subscribe((newAuto) => {
 		autos[selectedAuto] = newAuto;
+		if (detail?.type === DetailType.Waypoint) {
+			const value = autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]];
+			if (value !== detail?.value) {
+				detailsStore.set({
+					type: DetailType.Waypoint,
+					value: value
+				});
+			}
+		} else if (detail?.type === DetailType.PathConfig) {
+			const value = autos[selectedAuto].paths[selectedDetail[0]].config;
+			if (value !== detail?.value) {
+				detailsStore.set({
+					type: DetailType.PathConfig,
+					value
+				});
+			}
+		} else if (detail?.type === DetailType.AutoConfig) {
+			const value = autos[selectedAuto].config;
+			if (value !== detail?.value) {
+				detailsStore.set({
+					type: DetailType.AutoConfig,
+					value
+				});
+			}
+		} else if (detail?.type === DetailType.RobotConfig) {
+			const value = robot;
+			if (value !== detail?.value) {
+				detailsStore.set({
+					type: DetailType.RobotConfig,
+					value
+				});
+			}
+		}
+		autos = autos;
+	});
+
+	detailsStore.subscribe((newDetails) => {
+		detail = newDetails;
+		if (newDetails.type === DetailType.AutoConfig) {
+			autos[selectedDetail[0]].config = newDetails.value as AutoConfig;
+		} else if (newDetails.type === DetailType.PathConfig) {
+			autos[selectedAuto].paths[selectedDetail[0]].config = newDetails.value as PathConfig;
+		} else if (newDetails.type === DetailType.RobotConfig) {
+			robot = newDetails.value as RobotConfig;
+		} else if (newDetails.type === DetailType.Waypoint) {
+			autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]] =
+				newDetails.value as Waypoint;
+		}
 		autos = autos;
 	});
 </script>
@@ -39,6 +101,10 @@
 					onClick={() => {
 						selectedAuto = i;
 						autoStore.set(autos[selectedAuto]);
+						detailsStore.set({
+							type: DetailType.AutoConfig,
+							value: autos[selectedAuto].config
+						});
 					}}
 					deleteRow={() => {
 						autos.splice(i, 1);
@@ -67,11 +133,20 @@
 			{#each autos[selectedAuto].paths as path, i}
 				{#each path.waypoints as waypoint, j}
 					<DrawerRow
-						selected={false}
+						selected={detail?.type === DetailType.Waypoint &&
+							selectedDetail[0] == i &&
+							selectedDetail[1] == j}
 						name={`Waypoint ${j + 1}`}
 						deleteRow={() => {
 							autos[selectedAuto].paths[i].waypoints.splice(j, 1);
 							autos = autos;
+						}}
+						onClick={() => {
+							selectedDetail = [i, j];
+							detailsStore.set({
+								type: DetailType.Waypoint,
+								value: waypoint
+							});
 						}}
 					/>
 				{/each}
@@ -90,11 +165,10 @@
 			/>
 		</div>
 	</div>
-{/if}
-{#if !open}
+{:else}
 	<button
 		type="button"
-		class={`${'w-6'} flex justify-center flex-shrink-0 bg-zinc-800 h-screen-minus-title`}
+		class={`w-6 flex justify-center flex-shrink-0 bg-zinc-800 h-screen-minus-title`}
 		on:click={() => (open = true)}
 	>
 		<div class="w-4 h-4 pt-2">
