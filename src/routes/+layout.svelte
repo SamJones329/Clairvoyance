@@ -7,16 +7,6 @@
 	import { DetailType, getDefaultAuto, initTauriTrajectoryApi } from '$lib/scripts/Trajectory';
 	import { writable } from 'svelte/store';
 
-	const auto = getDefaultAuto();
-	setContext('auto', writable(auto));
-	setContext(
-		'details',
-		writable({
-			type: DetailType.AutoConfig,
-			detail: auto.config
-		})
-	);
-
 	onMount(async () => {
 		initTauriTrajectoryApi();
 	});

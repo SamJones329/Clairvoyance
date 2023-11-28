@@ -1,9 +1,8 @@
 <script lang="ts">
 	import fieldImg from '$lib/assets/2023-Field-Charged-Up.svg';
-	import { getContext, onMount } from 'svelte';
+	import { onMount } from 'svelte';
 	import { AutoCanvas, canvasHeight, canvasWidth } from '$lib/scripts/canvas';
 	import { getPath, type Auto, type Waypoint } from '$lib/scripts/Trajectory';
-	import type { Writable } from 'svelte/store';
 
 	enum TransformMode {
 		Translate,
@@ -12,24 +11,26 @@
 	}
 
 	// state variables
-	let auto: Auto;
+	/**
+	 * The currently selected auto. Will not be
+	 * reassigned from within this component, only
+	 * modified. Bind this variable if auto property
+	 * changes should trigger update in parent
+	 * component.
+	 */
+	export let auto: Auto;
 	let canvas: HTMLCanvasElement;
 	let autoCanvas: AutoCanvas;
 	let pathToTransformIndex = -1;
 	let waypointToTransformIndex = -1;
 	let transformMode: TransformMode = TransformMode.Translate;
 	let preview: Waypoint | null = null;
-	let autoStore = getContext<Writable<Auto>>('auto');
 
 	// state variable reactions
 	$: waypointBoundBoxes = autoCanvas?.getWaypointBoundBoxes(auto);
 	$: autoCanvas?.draw(auto, preview);
-	autoStore.subscribe((newAuto) => {
-		console.log('new auto on canvas');
-		auto = newAuto;
-	});
 
-	async function updateAutoStore(pathIndex: number | null = null) {
+	async function updateAuto(pathIndex: number | null = null) {
 		if (pathIndex != null) {
 			console.log(auto.paths[pathIndex]);
 			auto.paths[pathIndex].path = await getPath(auto.paths[pathIndex].waypoints, {
@@ -42,12 +43,12 @@
 				path.path = await getPath(path.waypoints, { ...auto.config, ...path.config });
 			}
 		}
-		autoStore.set(auto);
+		auto = auto;
 	}
 
 	// Runs when component first spins up
 	onMount(() => {
-		updateAutoStore();
+		updateAuto();
 		autoCanvas = new AutoCanvas(canvas);
 
 		canvas.addEventListener('dblclick', (ev: MouseEvent) => {
@@ -60,7 +61,7 @@
 				th: 0,
 				hidden: false
 			});
-			updateAutoStore(auto.paths.length - 1);
+			updateAuto(auto.paths.length - 1);
 		});
 
 		canvas.addEventListener('mousedown', (ev: MouseEvent) => {
@@ -146,10 +147,8 @@
 			auto.paths[pathToTransformIndex].waypoints[waypointToTransformIndex] = preview;
 			preview = null;
 			waypointToTransformIndex = -1;
-			updateAutoStore(pathToTransformIndex);
+			updateAuto(pathToTransformIndex);
 		});
-
-		auto = auto;
 	});
 </script>
 

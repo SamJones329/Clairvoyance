@@ -2,9 +2,13 @@
 	import type { AutoConfig } from '$lib/scripts/Trajectory';
 	import Input from '$lib/components/Input.svelte';
 	import { parseAndRound } from '$lib/scripts/math';
+	import { onMount } from 'svelte';
+	import Checkbox from '$lib/components/Checkbox.svelte';
 
 	export let config: AutoConfig;
 	export let expanded: boolean;
+
+	onMount(() => console.log(config));
 </script>
 
 <div class="flex flex-col gap-0 max-w-fit">
@@ -15,20 +19,15 @@
 <Input
 	type="number"
 	name="Max Velocity"
-	value={config?.maxVelocity}
+	value={config.maxVelocity}
 	onChange={(ev) => (config.maxVelocity = parseAndRound(ev.currentTarget.value))}
 />
 
 <Input
 	type="number"
 	name="Max Acceleration"
-	value={config?.maxAcceleration}
+	value={config.maxAcceleration}
 	onChange={(ev) => (config.maxAcceleration = parseAndRound(ev.currentTarget.value))}
 />
 
-<Input
-	type="checkbox"
-	name="Reversed"
-	value={config?.reversed}
-	onChange={(ev) => (config.reversed = ev.currentTarget.checked)}
-/>
+<Checkbox name="Reversed" bind:checked={config.reversed} />

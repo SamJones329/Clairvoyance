@@ -1,9 +1,8 @@
 <script lang="ts">
 	import Input from '$lib/components/Input.svelte';
 	import type { Waypoint } from '$lib/scripts/Trajectory';
-	import { parseAndRound } from '$lib/scripts/math';
+	import { parseAndRound, roundFloat } from '$lib/scripts/math';
 
-	export let div: HTMLDivElement;
 	export let waypoint: Waypoint;
 	export let expanded: boolean;
 </script>
@@ -37,4 +36,9 @@
 		value={waypoint.psi}
 		onChange={(ev) => (waypoint.psi = parseAndRound(ev.currentTarget.value))}
 	/>
+{:else}
+	<div>X: {roundFloat(waypoint.x, 1)}</div>
+	<div>Y: {roundFloat(waypoint.y, 1)}</div>
+	<div>Θ: {roundFloat(waypoint.th ?? 0, 1)}</div>
+	<div>Ψ: {roundFloat(waypoint.psi ?? 0, 1)}</div>
 {/if}

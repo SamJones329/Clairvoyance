@@ -1,6 +1,6 @@
 import type { Auto, Path, Waypoint } from './Trajectory';
 import { fieldLengthMeters, fieldWidthMeters } from '$lib/assets/field-data.json';
-import { degreesToRadians, radiansToDegrees } from '$lib/scripts/math';
+import { degreesToRadians, radiansToDegrees, roundFloat } from '$lib/scripts/math';
 
 const robotSideLengthMeters = 0.889;
 const canvasWidth = 1323;
@@ -187,8 +187,8 @@ class AutoCanvas {
 
 	public canvasToField(x: number, y: number): { x: number; y: number } {
 		return {
-			x: x * (fieldLengthMeters / this.canvas.width),
-			y: (this.canvas.height - y) * (fieldWidthMeters / this.canvas.height)
+			x: roundFloat(x * (fieldLengthMeters / this.canvas.width), 3),
+			y: roundFloat((this.canvas.height - y) * (fieldWidthMeters / this.canvas.height), 3)
 		};
 	}
 
@@ -198,7 +198,7 @@ class AutoCanvas {
 	 * @returns Field angle in degrees (CCW+)
 	 */
 	public canvasToFieldAngle(angleRadians: number) {
-		return -radiansToDegrees(angleRadians);
+		return roundFloat(-radiansToDegrees(angleRadians), 3);
 	}
 
 	/**
@@ -207,7 +207,7 @@ class AutoCanvas {
 	 * @returns Canvas angle in radians (CW+)
 	 */
 	public fieldToCanvasAngle(angleDegrees: number) {
-		return -degreesToRadians(angleDegrees);
+		return roundFloat(-degreesToRadians(angleDegrees), 3);
 	}
 
 	public clientToCanvasCoords(clientX: number, clientY: number) {

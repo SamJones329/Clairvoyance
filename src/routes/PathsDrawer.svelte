@@ -5,80 +5,97 @@
 	import {
 		getDefaultAuto,
 		type Auto,
-		type Waypoint,
-		type RobotConfig,
-		getDefaultRobotConfig,
 		DetailType,
 		type Detail,
-		type AutoConfig,
-		type PathConfig
+		getDefaultRobotConfig
 	} from '$lib/scripts/Trajectory';
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
-	import { getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
+	import DetailsPopup from './DetailsPopup.svelte';
+
+	/**
+	 * For passing selected auto up through state. Not
+	 * intended to be reassigned from outside this component.
+	 * Bind this prop if changes to detail properties
+	 * should trigger state update higher up.
+	 */
+	export let auto: Auto;
 
 	let robot = getDefaultRobotConfig();
-	let autos: Auto[] = [getDefaultAuto()];
+	let autos: Auto[] = [auto];
 	let selectedAuto = 0;
-	let open = true;
-	let autoStore = getContext<Writable<Auto>>('auto');
-	let detailsStore = getContext<Writable<Detail>>('details');
-	let detail: Detail;
 	let selectedDetail: [number, number] = [0, 0];
+	let detail: Detail = { type: DetailType.AutoConfig, value: autos[selectedAuto].config };
+	let open = true;
 
-	$: autoStore.set(autos[selectedAuto]);
-	autoStore.subscribe((newAuto) => {
-		autos[selectedAuto] = newAuto;
+	$: auto = autos[selectedAuto];
+
+	const selectAuto = (selectedAuto: number) => {
 		if (detail?.type === DetailType.Waypoint) {
 			const value = autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]];
 			if (value !== detail?.value) {
-				detailsStore.set({
+				detail = {
 					type: DetailType.Waypoint,
 					value: value
-				});
+				};
 			}
 		} else if (detail?.type === DetailType.PathConfig) {
 			const value = autos[selectedAuto].paths[selectedDetail[0]].config;
 			if (value !== detail?.value) {
-				detailsStore.set({
+				detail = {
 					type: DetailType.PathConfig,
 					value
-				});
+				};
 			}
 		} else if (detail?.type === DetailType.AutoConfig) {
 			const value = autos[selectedAuto].config;
 			if (value !== detail?.value) {
-				detailsStore.set({
+				detail = {
 					type: DetailType.AutoConfig,
 					value
-				});
+				};
 			}
 		} else if (detail?.type === DetailType.RobotConfig) {
 			const value = robot;
 			if (value !== detail?.value) {
-				detailsStore.set({
+				detail = {
 					type: DetailType.RobotConfig,
 					value
-				});
+				};
 			}
 		}
 		autos = autos;
-	});
+	};
+	$: selectAuto(selectedAuto);
 
-	detailsStore.subscribe((newDetails) => {
-		detail = newDetails;
-		if (newDetails.type === DetailType.AutoConfig) {
-			autos[selectedDetail[0]].config = newDetails.value as AutoConfig;
-		} else if (newDetails.type === DetailType.PathConfig) {
-			autos[selectedAuto].paths[selectedDetail[0]].config = newDetails.value as PathConfig;
-		} else if (newDetails.type === DetailType.RobotConfig) {
-			robot = newDetails.value as RobotConfig;
-		} else if (newDetails.type === DetailType.Waypoint) {
-			autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]] =
-				newDetails.value as Waypoint;
+	const autoUpdated = (newAuto: Auto) => {
+		if (!newAuto) return;
+		// waypoints can be updated outside of this component so need to refresh detail, may need to handle more cases later
+		if (detail.type === DetailType.Waypoint) {
+			detail = {
+				type: DetailType.Waypoint,
+				value: autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]]
+			};
 		}
-		autos = autos;
-	});
+		console.log('PathsDrawer auto updated -> detail update forced');
+	};
+	$: autoUpdated(auto);
+
+	// const updateDetail = (newDetails: Detail) => {
+	// 	if (!newDetails) return;
+	// 	detail = newDetails;
+	// 	if (newDetails.type === DetailType.AutoConfig) {
+	// 		autos[selectedDetail[0]].config = newDetails.value as AutoConfig;
+	// 	} else if (newDetails.type === DetailType.PathConfig) {
+	// 		autos[selectedAuto].paths[selectedDetail[0]].config = newDetails.value as PathConfig;
+	// 	} else if (newDetails.type === DetailType.RobotConfig) {
+	// 		robot = newDetails.value as RobotConfig;
+	// 	} else if (newDetails.type === DetailType.Waypoint) {
+	// 		autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]] =
+	// 			newDetails.value as Waypoint;
+	// 	}
+	// 	autos = autos;
+	// };
+	// $: updateDetail(detail);
 </script>
 
 {#if open}
@@ -100,11 +117,10 @@
 					selected={i == selectedAuto}
 					onClick={() => {
 						selectedAuto = i;
-						autoStore.set(autos[selectedAuto]);
-						detailsStore.set({
+						detail = {
 							type: DetailType.AutoConfig,
 							value: autos[selectedAuto].config
-						});
+						};
 					}}
 					deleteRow={() => {
 						autos.splice(i, 1);
@@ -113,9 +129,8 @@
 							if (autos.length == 0) {
 								autos.push(getDefaultAuto());
 							}
-							autoStore.set(autos[selectedAuto]);
 						}
-						autos = autos;
+						// autos = autos;
 					}}
 				/>
 			{/each}
@@ -123,7 +138,6 @@
 				onClick={() => {
 					autos.push(getDefaultAuto());
 					selectedAuto = autos.length - 1;
-					autoStore.set(autos[selectedAuto]);
 				}}
 			/>
 		</div>
@@ -143,10 +157,10 @@
 						}}
 						onClick={() => {
 							selectedDetail = [i, j];
-							detailsStore.set({
+							detail = {
 								type: DetailType.Waypoint,
-								value: waypoint
-							});
+								value: autos[selectedAuto].paths[i].waypoints[j]
+							};
 						}}
 					/>
 				{/each}
@@ -176,3 +190,5 @@
 		</div>
 	</button>
 {/if}
+
+<DetailsPopup bind:detail />

@@ -4,7 +4,7 @@
 	export let onChange: ChangeEventHandler<HTMLInputElement> | null = null;
 	export let name: string;
 	export let placeholder: string = '';
-	export let type: 'text' | 'number' | 'checkbox' = 'text';
+	export let type: 'text' | 'number' = 'text';
 </script>
 
 <div class="flex items-center justify-end w-44 lg:w-48 h-12">
@@ -12,7 +12,7 @@
 	<input
 		{placeholder}
 		class={`${
-			type === 'number' ? 'ml-4' : type === 'checkbox' ? 'h-4' : ''
+			type === 'number' ? 'ml-4' : ''
 		} w-10 lg:w-12 text-black bg-transparent text-lighttext border-b border-zinc-600 text-center hover:border-zinc-500 focus:border-zinc-500 focus:outline-none focus:border-b-2`}
 		{type}
 		{name}

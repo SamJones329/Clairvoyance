@@ -1,7 +1,10 @@
 <script lang="ts">
 	import PathsDrawer from './PathsDrawer.svelte';
 	import PathCanvas from './PathCanvas.svelte';
-	import DetailsPopup from './DetailsPopup.svelte';
+	import { getDefaultAuto, type Auto } from '$lib/scripts/Trajectory';
+
+	let auto: Auto = getDefaultAuto();
+	$: console.log('+page.svelte', auto);
 </script>
 
 <div class="bg-violet-900 text-white flex items-center justify-between h-10 lg:h-20">
@@ -10,11 +13,9 @@
 </div>
 
 <div class="relative flex">
-	<PathsDrawer />
+	<PathsDrawer bind:auto />
 
 	<div class="overflow-scroll max-h-screen-minus-title p-8">
-		<PathCanvas />
+		<PathCanvas bind:auto />
 	</div>
-
-	<DetailsPopup />
 </div>

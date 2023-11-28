@@ -132,8 +132,7 @@ async function initTauriTrajectoryApi() {
 	ON_TAURI =
 		(await invoke('test_for_tauri')
 			.then((val) => (typeof val === 'boolean' ? val : false))
-			.catch((err) => {
-				console.error(`Error invoking Tauri: ${err}`);
+			.catch(() => {
 				return false;
 			})) ?? false;
 	console.info(
@@ -202,15 +201,11 @@ function getDefaultAuto(): Auto {
 				hidden: false
 			}
 		],
-		config: getDefaultAutoConfig()
-	};
-}
-
-function getDefaultAutoConfig(): AutoConfig {
-	return {
-		maxVelocity: 4.5,
-		maxAcceleration: 3.5,
-		reversed: false
+		config: {
+			maxVelocity: 4.5,
+			maxAcceleration: 3.5,
+			reversed: false
+		}
 	};
 }
 
@@ -401,7 +396,11 @@ function stringToPaths(pathCode: string): Auto[] {
 		points.push({
 			title,
 			paths: [{ waypoints, path: getDoNothingPath(), config: {}, hidden: false }],
-			config: getDefaultAutoConfig()
+			config: {
+				maxVelocity: 4.5,
+				maxAcceleration: 3.5,
+				reversed: false
+			}
 		});
 	}
 	return points;
@@ -416,7 +415,6 @@ export {
 	stringToPaths,
 	getDefaultRobotConfig,
 	getDefaultAuto,
-	getDefaultAutoConfig,
 	getDoNothingPath,
 	type PathState,
 	type PathRequest,
