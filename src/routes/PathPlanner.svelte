@@ -24,7 +24,6 @@
 	 * should trigger state update higher up.
 	 */
 	let auto: Auto = getDefaultAuto();
-	let updatePathIndex = 0;
 
 	let robot = getDefaultRobotConfig();
 	let autos: Auto[] = [auto];
@@ -100,7 +99,6 @@
 				newDetails.value as Waypoint;
 		}
 		auto = auto;
-		autos = autos;
 	};
 	$: updateDetail(detail);
 </script>
@@ -138,7 +136,6 @@
 									autos.push(getDefaultAuto());
 								}
 							}
-							// autos = autos;
 						}}
 					/>
 				{/each}
@@ -183,9 +180,7 @@
 							th: 0,
 							hidden: false
 						});
-						updatePathIndex = pathIndex;
 						auto = auto;
-						autos = autos;
 					}}
 				/>
 			</div>
@@ -204,5 +199,5 @@
 
 	<DetailsPopup bind:detail />
 
-	<PathCanvas bind:auto {updatePathIndex} />
+	<PathCanvas bind:auto />
 </div>

@@ -12,7 +12,6 @@
 
 	// state variables
 	export let auto: Auto;
-	export let updatePathIndex: number;
 	let canvas: HTMLCanvasElement;
 	let autoCanvas: AutoCanvas;
 	let pathToTransformIndex = -1;
@@ -23,7 +22,7 @@
 	// state variable reactions
 	$: waypointBoundBoxes = autoCanvas?.getWaypointBoundBoxes(auto);
 	$: autoCanvas?.draw(auto, preview);
-	$: updateAuto(auto, updatePathIndex);
+	$: updateAuto(auto);
 
 	async function updateAuto(auto: Auto, pathIndex: number | null = null) {
 		if (!auto) return;
@@ -40,7 +39,6 @@
 			}
 		}
 		autoCanvas?.draw(auto, preview);
-		// auto = auto;
 	}
 
 	// Runs when component first spins up
