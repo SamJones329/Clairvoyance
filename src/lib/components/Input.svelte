@@ -17,7 +17,7 @@
 		{type}
 		{name}
 		{value}
-		on:change={onChange}
+		on:input={onChange}
 	/>
 </div>
 

@@ -2,7 +2,7 @@
 	import fieldImg from '$lib/assets/2023-Field-Charged-Up.svg';
 	import { onMount } from 'svelte';
 	import { AutoCanvas, canvasHeight, canvasWidth } from '$lib/scripts/canvas';
-	import { getPath, type Auto, type Waypoint } from '$lib/scripts/Trajectory';
+	import { getPath, type Auto, type Waypoint, getDefaultAuto } from '$lib/scripts/Trajectory';
 
 	enum TransformMode {
 		Translate,
@@ -11,14 +11,8 @@
 	}
 
 	// state variables
-	/**
-	 * The currently selected auto. Will not be
-	 * reassigned from within this component, only
-	 * modified. Bind this variable if auto property
-	 * changes should trigger update in parent
-	 * component.
-	 */
 	export let auto: Auto;
+	export let updatePathIndex: number;
 	let canvas: HTMLCanvasElement;
 	let autoCanvas: AutoCanvas;
 	let pathToTransformIndex = -1;
@@ -29,8 +23,10 @@
 	// state variable reactions
 	$: waypointBoundBoxes = autoCanvas?.getWaypointBoundBoxes(auto);
 	$: autoCanvas?.draw(auto, preview);
+	$: updateAuto(auto, updatePathIndex);
 
-	async function updateAuto(pathIndex: number | null = null) {
+	async function updateAuto(auto: Auto, pathIndex: number | null = null) {
+		if (!auto) return;
 		if (pathIndex != null) {
 			console.log(auto.paths[pathIndex]);
 			auto.paths[pathIndex].path = await getPath(auto.paths[pathIndex].waypoints, {
@@ -43,12 +39,13 @@
 				path.path = await getPath(path.waypoints, { ...auto.config, ...path.config });
 			}
 		}
-		auto = auto;
+		autoCanvas?.draw(auto, preview);
+		// auto = auto;
 	}
 
 	// Runs when component first spins up
 	onMount(() => {
-		updateAuto();
+		updateAuto(auto);
 		autoCanvas = new AutoCanvas(canvas);
 
 		canvas.addEventListener('dblclick', (ev: MouseEvent) => {
@@ -61,7 +58,7 @@
 				th: 0,
 				hidden: false
 			});
-			updateAuto(auto.paths.length - 1);
+			updateAuto(auto, auto.paths.length - 1);
 		});
 
 		canvas.addEventListener('mousedown', (ev: MouseEvent) => {
@@ -147,23 +144,25 @@
 			auto.paths[pathToTransformIndex].waypoints[waypointToTransformIndex] = preview;
 			preview = null;
 			waypointToTransformIndex = -1;
-			updateAuto(pathToTransformIndex);
+			updateAuto(auto, pathToTransformIndex);
 		});
 	});
 </script>
 
-<div class="relative">
-	<img
-		class="min-w-[64rem]"
-		src={fieldImg}
-		alt="Top down render of FRC game field inside the field perimeter"
-	/>
+<div class="overflow-scroll max-h-screen-minus-title p-8">
+	<div class="relative">
+		<img
+			class="min-w-[64rem]"
+			src={fieldImg}
+			alt="Top down render of FRC game field inside the field perimeter"
+		/>
 
-	<!-- Same dimensions as field-image.png -->
-	<canvas
-		bind:this={canvas}
-		width={canvasWidth}
-		height={canvasHeight}
-		class="absolute min-w-[64rem] w-full h-full top-0 z-10"
-	/>
+		<!-- Same dimensions as field-image.png -->
+		<canvas
+			bind:this={canvas}
+			width={canvasWidth}
+			height={canvasHeight}
+			class="absolute min-w-[64rem] w-full h-full top-0 z-10"
+		/>
+	</div>
 </div>
