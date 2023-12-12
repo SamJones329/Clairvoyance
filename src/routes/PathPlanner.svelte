@@ -1,5 +1,6 @@
 <script lang="ts">
 	import DrawerAddButton from '$lib/components/DrawerAddButton.svelte';
+	import DrawerButton from '$lib/components/DrawerButton.svelte';
 	import DrawerHeading from '$lib/components/DrawerHeading.svelte';
 	import DrawerRow from '$lib/components/DrawerRow.svelte';
 	import {
@@ -101,89 +102,100 @@
 		auto = auto;
 	};
 	$: updateDetail(detail);
+
+	function downloadAuto() {
+		const element = document.createElement('a');
+		const file = new Blob([JSON.stringify(auto)], { type: 'text/plain' });
+		element.href = URL.createObjectURL(file);
+		element.download = `${auto.title}.json`;
+		document.body.appendChild(element); // Required for this to work in FireFox
+		element.click();
+	}
 </script>
 
 <div class="relative flex">
 	{#if open}
 		<div
-			class="w-48 lg:w-64 flex-shrink-0 flex-grow-0 bg-zinc-800 h-screen-minus-title p-4 overflow-y-scroll"
+			class="flex flex-col justify-between w-48 lg:w-64 flex-col flex-shrink-0 flex-grow-0 bg-zinc-800 h-screen-minus-title p-4 overflow-y-scroll"
 		>
-			<div class="flex items-center justify-between pb-4">
-				<h2 class="text-lg text-lighttext">Project</h2>
-				<button on:click={() => (open = false)}>
-					<FontAwesomeIcon class="text-zinc-600 hover:text-lighttext" icon="fa-solid fa-x" />
-				</button>
-			</div>
-
-			<div class="mb-8">
-				<DrawerHeading>Autos</DrawerHeading>
-				{#each autos as auto, i}
-					<DrawerRow
-						bind:name={auto.title}
-						selected={i == selectedAuto}
-						onClick={() => {
-							selectedAuto = i;
-							detail = {
-								type: DetailType.AutoConfig,
-								value: autos[selectedAuto].config
-							};
-						}}
-						deleteRow={() => {
-							autos.splice(i, 1);
-							if (i == selectedAuto) {
-								selectedAuto = 0;
-								if (autos.length == 0) {
-									autos.push(getDefaultAuto());
-								}
-							}
-						}}
-					/>
-				{/each}
-				<DrawerAddButton
-					onClick={() => {
-						autos.push(getDefaultAuto());
-						selectedAuto = autos.length - 1;
-					}}
-				/>
-			</div>
-
-			<div class="mb-8">
-				<DrawerHeading>Waypoints</DrawerHeading>
-				{#each autos[selectedAuto].paths as path, i}
-					{#each path.waypoints as waypoint, j}
+			<div>
+				<div class="flex items-center justify-between pb-4">
+					<h2 class="text-lg text-lighttext">Project</h2>
+					<button on:click={() => (open = false)}>
+						<FontAwesomeIcon class="text-zinc-600 hover:text-lighttext" icon="fa-solid fa-x" />
+					</button>
+				</div>
+				<div class="mb-8">
+					<DrawerHeading>Autos</DrawerHeading>
+					{#each autos as auto, i}
 						<DrawerRow
-							selected={detail?.type === DetailType.Waypoint &&
-								selectedDetail[0] == i &&
-								selectedDetail[1] == j}
-							name={`Waypoint ${j + 1}`}
-							deleteRow={() => {
-								autos[selectedAuto].paths[i].waypoints.splice(j, 1);
-								autos = autos;
-							}}
+							bind:name={auto.title}
+							selected={i == selectedAuto}
 							onClick={() => {
-								selectedDetail = [i, j];
+								selectedAuto = i;
 								detail = {
-									type: DetailType.Waypoint,
-									value: autos[selectedAuto].paths[i].waypoints[j]
+									type: DetailType.AutoConfig,
+									value: autos[selectedAuto].config
 								};
+							}}
+							deleteRow={() => {
+								autos.splice(i, 1);
+								if (i == selectedAuto) {
+									selectedAuto = 0;
+									if (autos.length == 0) {
+										autos.push(getDefaultAuto());
+									}
+								}
 							}}
 						/>
 					{/each}
-				{/each}
-				<DrawerAddButton
-					onClick={() => {
-						const pathIndex = auto.paths.length - 1;
-						auto.paths[pathIndex].waypoints.push({
-							x: 0,
-							y: 0,
-							psi: 0,
-							th: 0,
-							hidden: false
-						});
-						auto = auto;
-					}}
-				/>
+					<DrawerAddButton
+						onClick={() => {
+							autos.push(getDefaultAuto());
+							selectedAuto = autos.length - 1;
+						}}
+					/>
+				</div>
+				<div class="mb-8">
+					<DrawerHeading>Waypoints</DrawerHeading>
+					{#each autos[selectedAuto].paths as path, i}
+						{#each path.waypoints as waypoint, j}
+							<DrawerRow
+								selected={detail?.type === DetailType.Waypoint &&
+									selectedDetail[0] == i &&
+									selectedDetail[1] == j}
+								name={`Waypoint ${j + 1}`}
+								deleteRow={() => {
+									autos[selectedAuto].paths[i].waypoints.splice(j, 1);
+									autos = autos;
+								}}
+								onClick={() => {
+									selectedDetail = [i, j];
+									detail = {
+										type: DetailType.Waypoint,
+										value: autos[selectedAuto].paths[i].waypoints[j]
+									};
+								}}
+							/>
+						{/each}
+					{/each}
+					<DrawerAddButton
+						onClick={() => {
+							const pathIndex = auto.paths.length - 1;
+							auto.paths[pathIndex].waypoints.push({
+								x: 0,
+								y: 0,
+								psi: 0,
+								th: 0,
+								hidden: false
+							});
+							auto = auto;
+						}}
+					/>
+				</div>
 			</div>
+
+			<DrawerButton onClick={downloadAuto}>Export</DrawerButton>
 		</div>
 	{:else}
 		<button

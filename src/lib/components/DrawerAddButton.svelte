@@ -1,12 +1,10 @@
 <script lang="ts">
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
+	import DrawerButton from './DrawerButton.svelte';
 
 	export let onClick: (() => void) | null = null;
 </script>
 
-<button
-	class="w-full flex items-center justify-center gap-2 text-lighttext bg-zinc-700 hover:bg-zinc-600 py-1 rounded-lg my-2"
-	on:click={onClick}
->
+<DrawerButton {onClick}>
 	<FontAwesomeIcon class="text-lighttext" icon="fa-solid fa-plus" />
-</button>
+</DrawerButton>
