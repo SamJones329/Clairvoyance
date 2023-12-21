@@ -17,6 +17,7 @@
 	import { FontAwesomeIcon } from '@fortawesome/svelte-fontawesome';
 	import DetailsPopup from './DetailsPopup.svelte';
 	import PathCanvas from './PathCanvas.svelte';
+	import AutoImportModal from './AutoImportModal.svelte';
 
 	/**
 	 * For passing selected auto up through state. Not
@@ -28,16 +29,21 @@
 
 	let robot = getDefaultRobotConfig();
 	let autos: Auto[] = [auto];
-	let selectedAuto = 0;
-	let selectedDetail: [number, number] = [0, 0];
-	let detail: Detail = { type: DetailType.AutoConfig, value: autos[selectedAuto].config };
-	let open = true;
 
-	$: auto = autos[selectedAuto];
+	// used where more resolution is needed than selectedAuto to determine detail location
+	let selectedDetail: { pathIndex: number; waypointIndex: number } = {
+		pathIndex: 0,
+		waypointIndex: 0
+	};
+	let detail: Detail = { type: DetailType.AutoConfig, value: auto.config };
+	let open = true;
+	let importing = false;
 
 	const selectAuto = (selectedAuto: number) => {
+		auto = autos[selectedAuto];
+
 		if (detail?.type === DetailType.Waypoint) {
-			const value = autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]];
+			const value = auto.paths[selectedDetail.pathIndex].waypoints[selectedDetail.waypointIndex];
 			if (value !== detail?.value) {
 				detail = {
 					type: DetailType.Waypoint,
@@ -45,7 +51,7 @@
 				};
 			}
 		} else if (detail?.type === DetailType.PathConfig) {
-			const value = autos[selectedAuto].paths[selectedDetail[0]].config;
+			const value = auto.paths[selectedDetail.pathIndex].config;
 			if (value !== detail?.value) {
 				detail = {
 					type: DetailType.PathConfig,
@@ -53,7 +59,7 @@
 				};
 			}
 		} else if (detail?.type === DetailType.AutoConfig) {
-			const value = autos[selectedAuto].config;
+			const value = auto.config;
 			if (value !== detail?.value) {
 				detail = {
 					type: DetailType.AutoConfig,
@@ -69,9 +75,13 @@
 				};
 			}
 		}
+
+		detail = {
+			type: DetailType.AutoConfig,
+			value: auto.config
+		};
 		autos = autos;
 	};
-	$: selectAuto(selectedAuto);
 
 	const autoUpdated = (newAuto: Auto) => {
 		if (!newAuto) return;
@@ -79,10 +89,10 @@
 		if (detail.type === DetailType.Waypoint) {
 			detail = {
 				type: DetailType.Waypoint,
-				value: autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]]
+				value: auto.paths[selectedDetail.pathIndex].waypoints[selectedDetail.waypointIndex]
 			};
 		}
-		console.log('PathsDrawer auto updated -> detail update forced');
+		console.debug('PathsDrawer auto updated -> detail update forced');
 	};
 	$: autoUpdated(auto);
 
@@ -90,13 +100,13 @@
 		if (!newDetails) return;
 		detail = newDetails;
 		if (newDetails.type === DetailType.AutoConfig) {
-			autos[selectedDetail[0]].config = newDetails.value as AutoConfig;
+			auto.config = newDetails.value as AutoConfig;
 		} else if (newDetails.type === DetailType.PathConfig) {
-			autos[selectedAuto].paths[selectedDetail[0]].config = newDetails.value as PathConfig;
+			auto.paths[selectedDetail.pathIndex].config = newDetails.value as PathConfig;
 		} else if (newDetails.type === DetailType.RobotConfig) {
 			robot = newDetails.value as RobotConfig;
 		} else if (newDetails.type === DetailType.Waypoint) {
-			autos[selectedAuto].paths[selectedDetail[0]].waypoints[selectedDetail[1]] =
+			auto.paths[selectedDetail.pathIndex].waypoints[selectedDetail.waypointIndex] =
 				newDetails.value as Waypoint;
 		}
 		auto = auto;
@@ -110,6 +120,45 @@
 		element.download = `${auto.title}.json`;
 		document.body.appendChild(element); // Required for this to work in FireFox
 		element.click();
+	}
+
+	function deleteWaypoint(pathIndex: number, waypointIndex: number) {
+		const path = auto.paths[pathIndex];
+		path.waypoints.splice(waypointIndex, 1);
+
+		if (detail.type === DetailType.Waypoint) {
+			if (pathIndex === selectedDetail.pathIndex) {
+				if (waypointIndex === selectedDetail.waypointIndex) {
+					// if this waypoint was the detail, default to auto config
+					detail = {
+						type: DetailType.AutoConfig,
+						value: auto.config
+					};
+				} else if (waypointIndex < selectedDetail.waypointIndex) {
+					// if this waypoint was before the detail waypoint, shift the indices back
+					selectedDetail.waypointIndex--;
+				}
+			}
+		}
+
+		if (path.waypoints.length === 0) {
+			// if this was the last waypoint, remove the path
+			auto.paths.splice(pathIndex, 1);
+			if (detail.type === DetailType.PathConfig) {
+				if (pathIndex < selectedDetail.pathIndex) {
+					// if this path was before the detail path, shift the indices back
+					selectedDetail.pathIndex--;
+				} else if (pathIndex === selectedDetail.pathIndex) {
+					// if this path was the detail, default to auto config
+					detail = {
+						type: DetailType.AutoConfig,
+						value: auto.config
+					};
+				}
+			}
+		}
+
+		auto = auto;
 	}
 </script>
 
@@ -127,24 +176,20 @@
 				</div>
 				<div class="mb-8">
 					<DrawerHeading>Autos</DrawerHeading>
-					{#each autos as auto, i}
+					{#each autos as autoIter, i}
 						<DrawerRow
-							bind:name={auto.title}
-							selected={i == selectedAuto}
+							bind:name={autoIter.title}
+							selected={autoIter === auto}
 							onClick={() => {
-								selectedAuto = i;
-								detail = {
-									type: DetailType.AutoConfig,
-									value: autos[selectedAuto].config
-								};
+								selectAuto(i);
 							}}
-							deleteRow={() => {
+							deleteRow={(selected) => {
 								autos.splice(i, 1);
-								if (i == selectedAuto) {
-									selectedAuto = 0;
+								if (selected) {
 									if (autos.length == 0) {
 										autos.push(getDefaultAuto());
 									}
+									selectAuto(0);
 								}
 							}}
 						/>
@@ -152,28 +197,25 @@
 					<DrawerAddButton
 						onClick={() => {
 							autos.push(getDefaultAuto());
-							selectedAuto = autos.length - 1;
+							selectAuto(autos.length - 1);
 						}}
 					/>
 				</div>
 				<div class="mb-8">
 					<DrawerHeading>Waypoints</DrawerHeading>
-					{#each autos[selectedAuto].paths as path, i}
+					{#each auto.paths as path, i}
 						{#each path.waypoints as waypoint, j}
 							<DrawerRow
 								selected={detail?.type === DetailType.Waypoint &&
-									selectedDetail[0] == i &&
-									selectedDetail[1] == j}
+									selectedDetail.pathIndex == i &&
+									selectedDetail.waypointIndex == j}
 								name={`Waypoint ${j + 1}`}
-								deleteRow={() => {
-									autos[selectedAuto].paths[i].waypoints.splice(j, 1);
-									autos = autos;
-								}}
+								deleteRow={() => deleteWaypoint(i, j)}
 								onClick={() => {
-									selectedDetail = [i, j];
+									selectedDetail = { pathIndex: i, waypointIndex: j };
 									detail = {
 										type: DetailType.Waypoint,
-										value: autos[selectedAuto].paths[i].waypoints[j]
+										value: auto.paths[i].waypoints[j]
 									};
 								}}
 							/>
@@ -195,7 +237,10 @@
 				</div>
 			</div>
 
-			<DrawerButton onClick={downloadAuto}>Export</DrawerButton>
+			<div>
+				<DrawerButton onClick={() => (importing = true)}>Import</DrawerButton>
+				<DrawerButton onClick={downloadAuto}>Export</DrawerButton>
+			</div>
 		</div>
 	{:else}
 		<button
@@ -213,3 +258,13 @@
 
 	<PathCanvas bind:auto />
 </div>
+
+{#if importing}
+	<AutoImportModal
+		onImport={(auto) => {
+			autos.push(auto);
+			selectAuto(autos.length - 1);
+		}}
+		bind:show={importing}
+	/>
+{/if}

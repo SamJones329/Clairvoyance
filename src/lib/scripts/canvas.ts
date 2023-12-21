@@ -19,6 +19,12 @@ interface Box {
 	bottomRight: { x: number; y: number };
 }
 
+export interface WaypointBoundBox {
+	translationBox: Box;
+	rotationCircle: Circle;
+	headingCircle: Circle;
+}
+
 class AutoCanvas {
 	private canvas: HTMLCanvasElement;
 	private ctx: CanvasRenderingContext2D;
@@ -145,8 +151,8 @@ class AutoCanvas {
 	}
 
 	private drawPath(path: Path) {
-		if (!path.states.length) {
-			console.log('no path');
+		if (!path?.states?.length) {
+			console.debug('no path');
 			return;
 		}
 		this.ctx.lineWidth = 3;
@@ -225,9 +231,7 @@ class AutoCanvas {
 	 * where bounds[i][j] is the bound box for the jth waypoint in the ith
 	 * path (auto.paths[i].waypoints[j])
 	 */
-	public getWaypointBoundBoxes(
-		auto: Auto
-	): { translationBox: Box; rotationCircle: Circle; headingCircle: Circle }[][] {
+	public getWaypointBoundBoxes(auto: Auto): WaypointBoundBox[][] {
 		const bounds = [];
 		for (const path of auto.paths) {
 			bounds.push(

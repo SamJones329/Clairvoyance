@@ -8,7 +8,7 @@
 	export let config: AutoConfig;
 	export let expanded: boolean;
 
-	onMount(() => console.log(config));
+	onMount(() => console.debug(config));
 </script>
 
 <div class="flex flex-col gap-0 max-w-fit">

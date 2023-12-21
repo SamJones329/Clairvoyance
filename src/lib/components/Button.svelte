@@ -12,6 +12,10 @@
 	export let mBtm = '';
 	export let invert = false;
 	export let bold = false;
+	export let intent: 'primary' | 'danger' | 'success' | 'warning' = 'primary';
+
+	let bgColor = invert ? 'bg-white' : `bg-${intent}`;
+	let textColor = invert ? `text-${intent}` : 'text-whitetext';
 
 	const widths = {
 		sm: 'w-24',
@@ -23,7 +27,9 @@
 <button
 	on:click={onClick}
 	type="button"
-	class={`text-sm ${fixedWidth ? widths[size] : ''} ${height} ${
-		invert ? 'bg-white text-violet-800' : 'bg-primary text-whitetext'
-	} ${bold ? 'font-bold' : ''} p-2 rounded-lg ${mX} ${mTop} ${mBtm}`}><slot /></button
+	class={`text-sm brightness-90 hover:brightness-100 transition-all ${
+		fixedWidth ? widths[size] : ''
+	} ${height} ${bgColor} ${textColor} ${
+		bold ? 'font-bold' : ''
+	} p-2 rounded-lg ${mX} ${mTop} ${mBtm}`}><slot /></button
 >

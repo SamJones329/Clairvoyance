@@ -1,8 +1,13 @@
 <script lang="ts">
 	import fieldImg from '$lib/assets/2023-Field-Charged-Up.svg';
 	import { onMount } from 'svelte';
-	import { AutoCanvas, canvasHeight, canvasWidth } from '$lib/scripts/canvas';
-	import { getPath, type Auto, type Waypoint, getDefaultAuto } from '$lib/scripts/Trajectory';
+	import {
+		AutoCanvas,
+		canvasHeight,
+		canvasWidth,
+		type WaypointBoundBox
+	} from '$lib/scripts/canvas';
+	import { getPath, type Auto, type Waypoint } from '$lib/scripts/Trajectory';
 
 	enum TransformMode {
 		Translate,
@@ -18,26 +23,18 @@
 	let waypointToTransformIndex = -1;
 	let transformMode: TransformMode = TransformMode.Translate;
 	let preview: Waypoint | null = null;
+	// TODO abstract this into canvas class
+	let waypointBoundBoxes: WaypointBoundBox[][] = [];
 
-	// state variable reactions
-	$: waypointBoundBoxes = autoCanvas?.getWaypointBoundBoxes(auto);
-	$: autoCanvas?.draw(auto, preview);
+	// listen to upstream changes to auto
 	$: updateAuto(auto);
 
-	async function updateAuto(auto: Auto, pathIndex: number | null = null) {
+	async function updateAuto(auto: Auto) {
 		if (!auto) return;
-		if (pathIndex != null) {
-			console.log(auto.paths[pathIndex]);
-			auto.paths[pathIndex].path = await getPath(auto.paths[pathIndex].waypoints, {
-				...auto.config,
-				...auto.paths[pathIndex].config
-			});
-			console.log(auto.paths[pathIndex].path);
-		} else {
-			for (const path of auto.paths) {
-				path.path = await getPath(path.waypoints, { ...auto.config, ...path.config });
-			}
+		for (const path of auto.paths) {
+			path.path = await getPath(path.waypoints, { ...auto.config, ...path.config });
 		}
+		waypointBoundBoxes = autoCanvas?.getWaypointBoundBoxes(auto);
 		autoCanvas?.draw(auto, preview);
 	}
 
@@ -56,7 +53,7 @@
 				th: 0,
 				hidden: false
 			});
-			updateAuto(auto, auto.paths.length - 1);
+			auto = auto;
 		});
 
 		canvas.addEventListener('mousedown', (ev: MouseEvent) => {
@@ -134,6 +131,7 @@
 					}
 					break;
 			}
+			autoCanvas?.draw(auto, preview);
 		});
 
 		canvas.addEventListener('mouseup', (_: MouseEvent) => {
@@ -142,7 +140,7 @@
 			auto.paths[pathToTransformIndex].waypoints[waypointToTransformIndex] = preview;
 			preview = null;
 			waypointToTransformIndex = -1;
-			updateAuto(auto, pathToTransformIndex);
+			auto = auto;
 		});
 	});
 </script>

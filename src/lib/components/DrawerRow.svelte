@@ -6,7 +6,7 @@
 	export let name: string;
 	export let selected: boolean;
 	export let onClick: (() => void) | null = null;
-	export let deleteRow: (() => void) | undefined;
+	export let deleteRow: ((selected: boolean) => void) | undefined;
 
 	let maybeDelete = false;
 	let input: HTMLInputElement;
@@ -48,7 +48,7 @@
 				<button
 					on:click={() => {
 						if (deleteRow) {
-							deleteRow();
+							deleteRow(selected);
 						}
 						maybeDelete = false;
 					}}

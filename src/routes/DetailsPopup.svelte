@@ -9,7 +9,7 @@
 
 	/** The currently selected detail. Will not be reassigned from within this component, only modified. */
 	export let detail: Detail;
-	$: console.log('DetailsPopup', detail);
+	$: console.debug('DetailsPopup', detail);
 
 	let titleBar: HTMLDivElement;
 	let contentContainer: HTMLDivElement;
@@ -29,7 +29,7 @@
 	};
 
 	onMount(() => {
-		console.log(detail);
+		console.debug(detail);
 		getMaxPopupPositions();
 		window.addEventListener('resize', getMaxPopupPositions);
 
@@ -51,7 +51,9 @@
 				else if (top < 0) top = 0;
 				popup.style.top = `${top}px`;
 			} else if (expandingPopup) {
-				console.log(`title: ${titleBar?.offsetHeight} content: ${contentContainer?.offsetHeight}`);
+				console.debug(
+					`title: ${titleBar?.offsetHeight} content: ${contentContainer?.offsetHeight}`
+				);
 				const newHeight = Math.min(
 					popup.offsetHeight + (e.clientY - lastExpandPos),
 					100000 //titleBar?.clientHeight ?? 0 + contentContainer?.offsetHeight ?? 0

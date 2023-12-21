@@ -326,7 +326,7 @@ function stringToPaths(pathCode: string): Auto[] {
 	const paths = pathCodeWithoutComments.match(
 		/SwerveTrajectoryWaypoint\s*\[\s*\]\s*\w+\s*=\s*(?:new\s+SwerveTrajectoryWaypoint\[\]\s*)?\{(?:\s|\d|\w|[-+*(),./])+\};/g
 	);
-	console.log(paths);
+	console.debug(paths);
 
 	if (!paths) return [];
 
@@ -339,7 +339,7 @@ function stringToPaths(pathCode: string): Auto[] {
 		let title = path.match(/\s*\w+(?:\w|\d)?(?=\s*=)/g)?.[0].trim() ?? 'noTitleFound';
 		title = camelCaseToTitleCase(title);
 		const splitPath = path.split(/(?:\s*|,)?\s*new\s*SwerveTrajectoryWaypoint\(\s*/g);
-		console.log(splitPath);
+		console.debug(splitPath);
 		if (!splitPath) {
 			console.warn(`%cNo points found for path ${title}`, 'color: yellow');
 			continue;
@@ -356,14 +356,14 @@ function stringToPaths(pathCode: string): Auto[] {
 				ptMatches.push(['null']);
 			}
 		}
-		console.log(ptMatches);
+		console.debug(ptMatches);
 		// const ptMatches = pathWithoutComments.matchAll(
 		// 	/(?:\s*new\s+SwerveTrajectoryWaypoint\s*\(\s*new\s+Translation2d\s*\((?<translationX>-?\d*\.\d+|\d+\.?)\s*,\s*(?<translationY>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<orientation_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<orientation>-?\d*\.\d+|\d+\.?)\s*\)\s*,\s*(?<heading_constructor>Rotation2d\.fromDegrees|new\s+Rotation2d|Rotation2d\.fromRadians)\s*\((?<heading>-?\d*\.\d+|\d+\.?)\s*\)\s*\)|null)+/g
 		// );
 		const waypoints: Waypoint[] = [];
 		let curPts = 0;
 		for (const point of ptMatches) {
-			console.log(point);
+			console.debug(point);
 			if (point[0] === 'null') {
 				console.debug(`%cGot a subpath with ${curPts} points`, 'color: white');
 				waypoints[waypoints.length - 1].stop = true;
