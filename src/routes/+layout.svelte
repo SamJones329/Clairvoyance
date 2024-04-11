@@ -3,13 +3,19 @@
 	import '@fortawesome/fontawesome-free/js/regular.min.js';
 	import '@fortawesome/fontawesome-free/js/solid.min.js';
 	import '@fortawesome/fontawesome-free/js/fontawesome.min.js';
-	import { onMount, setContext } from 'svelte';
-	import { DetailType, getDefaultAuto, initTauriTrajectoryApi } from '$lib/scripts/Trajectory';
-	import { writable } from 'svelte/store';
+	import '@fortawesome/fontawesome-free/js/brands.min.js';
+	import { onMount } from 'svelte';
+	import { initTauriTrajectoryApi } from '$lib/scripts/Trajectory';
+	import { page } from '$app/stores';
+	import Navbar from '$lib/components/Navbar.svelte';
 
 	onMount(async () => {
 		initTauriTrajectoryApi();
 	});
 </script>
+
+{#if $page.url.pathname !== '/'}
+	<Navbar />
+{/if}
 
 <slot />

@@ -25,10 +25,11 @@
 	 * Bind this prop if changes to detail properties
 	 * should trigger state update higher up.
 	 */
-	let auto: Auto = getDefaultAuto();
+	// let auto: Auto = getDefaultAuto();
 
 	let robot = getDefaultRobotConfig();
-	let autos: Auto[] = [auto];
+	export let autos: Auto[];
+	let auto = autos[0];
 
 	// used where more resolution is needed than selectedAuto to determine detail location
 	let selectedDetail: { pathIndex: number; waypointIndex: number } = {

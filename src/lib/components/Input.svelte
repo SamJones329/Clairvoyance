@@ -4,7 +4,7 @@
 	export let onChange: ChangeEventHandler<HTMLInputElement> | null = null;
 	export let name: string;
 	export let placeholder: string = '';
-	export let type: 'text' | 'number' = 'text';
+	export let type: 'text' | 'number' | 'checkbox' = 'text';
 </script>
 
 <div class="flex items-center justify-end w-44 lg:w-48 h-12">

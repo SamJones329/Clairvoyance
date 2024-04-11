@@ -14,6 +14,7 @@
 		"format": "prettier --plugin-search-dir . --write ."
 	},
 	"devDependencies": {
+		"@fortawesome/fontawesome-free": "^6.5.2",
 		"@fortawesome/fontawesome-svg-core": "^6.4.0",
 		"@fortawesome/free-solid-svg-icons": "^6.4.0",
 		"@fortawesome/svelte-fontawesome": "^0.2.0",
@@ -42,7 +43,6 @@
 	},
 	"type": "module",
 	"dependencies": {
-		"@fortawesome/fontawesome-free": "^6.3.0",
 		"paper": "^0.12.17",
 		"path2d-polyfill": "^3.1.0"
 	}
