@@ -4,15 +4,15 @@
 	import Link from '$lib/components/Link.svelte';
 </script>
 
-<Flex gap="0" direction="col" justify="center" classes="mt-8">
+<Flex align="center" gap="0" direction="col" justify="center" classes="mt-8">
 	<p class="text-2xl">Welcome to</p>
-	<Flex gap="0">
+	<Flex align="center" gap="0">
 		<img class="h-16 w-16" src="/Clairvoyance.svg" alt="Clairvoyance Logo" />
 		<span class="text-[4rem]">airvoyance</span>
 	</Flex>
 </Flex>
 
-<Flex justify="center" classes="my-8">
+<Flex align="center" justify="center" classes="my-8">
 	<ImgCard
 		title="Plan Paths"
 		imgUrl="https://picsum.photos/200/300"

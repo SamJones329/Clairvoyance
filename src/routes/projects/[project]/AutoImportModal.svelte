@@ -118,9 +118,9 @@
 						Import auto "{auto?.title}" with {numWaypoints} waypoints?
 					</p>
 					<div class="flex justify-center gap-4">
-						<Button intent="danger" onClick={() => (show = false)}>Cancel</Button>
+						<Button mY="none" intent="danger" onClick={() => (show = false)}>Cancel</Button>
 						{#if auto}
-							<Button intent="success" onClick={importFile}>Confirm</Button>
+							<Button mY="none" intent="success" onClick={importFile}>Confirm</Button>
 						{/if}
 					</div>
 				{/if}

@@ -21,6 +21,8 @@
 	class={`flex items-center justify-between px-2 py-1 my-1 rounded-md ${
 		selected ? 'bg-zinc-700' : ''
 	}`}
+	role="button"
+	tabindex={0}
 	on:click={onClick}
 	on:keypress={onClick}
 >

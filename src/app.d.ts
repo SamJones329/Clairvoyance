@@ -11,6 +11,8 @@ declare global {
 		export type OnChangeParam = Event & {
 			currentTarget: EventTarget & HTMLInputElement;
 		};
+
+		export type uiSize = 'none' | 'xs' | 's' | 'm' | 'l' | 'xl' | '2xl';
 	}
 	interface Window {
 		__TAURI_METADATA__: unknown;
